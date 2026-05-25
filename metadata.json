@@ -1,0 +1,6 @@
+{
+  "name": "Venta de Garage - Mudanza a Canadá",
+  "description": "Sitio dinámico para vender artículos del hogar con panel de gestión, categorías, puntuación, integración de WhatsApp y juego interactivo Caja Sorpresa.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

@@ -15,7 +15,10 @@ import {
   FileUp,
   RotateCcw,
   BookOpen,
-  Image as ImageIcon
+  Image as ImageIcon,
+  Pencil,
+  Video,
+  X
 } from 'lucide-react';
 import { Product, ProductStatus } from '../types';
 import { CATEGORIES } from '../data';
@@ -45,6 +48,7 @@ export default function AdminPanel({
   const [authError, setAuthError] = useState('');
 
   // Form states
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [newName, setNewName] = useState('');
   const [newDesc, setNewDesc] = useState('');
   const [newCategory, setNewCategory] = useState(CATEGORIES[1] || 'Cocina y Electrodomésticos');
@@ -55,6 +59,8 @@ export default function AdminPanel({
   const [newImageUrl, setNewImageUrl] = useState('');
   const [uploadedBase64, setUploadedBase64] = useState('');
   const [isOfferBonus, setIsOfferBonus] = useState(false);
+  const [extraImagesText, setExtraImagesText] = useState('');
+  const [videoUrlInput, setVideoUrlInput] = useState('');
 
   // Search in Admin
   const [apiSearch, setApiSearch] = useState('');
@@ -91,6 +97,21 @@ export default function AdminPanel({
     }
   };
 
+  const handleCancelEdit = () => {
+    setEditingProduct(null);
+    setNewName('');
+    setNewDesc('');
+    setNewPriceUSD('');
+    setNewPriceUYU('');
+    setNewScore(5);
+    setNewImageUrl('');
+    setUploadedBase64('');
+    setExtraImagesText('');
+    setVideoUrlInput('');
+    setIsOfferBonus(false);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newName || !newCategory) {
@@ -104,20 +125,45 @@ export default function AdminPanel({
     const defaultUnsplash = 'https://images.unsplash.com/photo-1540555700478-4be289fbecef?auto=format&fit=crop&q=80&w=600';
     const finalImage = imageType === 'url' ? (newImageUrl || defaultUnsplash) : (uploadedBase64 || defaultUnsplash);
 
-    const newProduct: Product = {
-      id: Date.now().toString(),
-      name: newName,
-      description: newDesc,
-      category: newCategory,
-      priceUSD: usd,
-      priceUYU: uyu,
-      score: newScore,
-      imageUrl: finalImage,
-      status: 'disponible',
-      isOfferBonus: isOfferBonus || newScore <= 2
-    };
+    // Parse extra images (comma or newline separated, filter out blanks)
+    const extraImagesList = extraImagesText
+      .split(/[\n,]+/)
+      .map(img => img.trim())
+      .filter(img => img.length > 0 && (img.startsWith('http') || img.startsWith('data:')));
 
-    onAddProduct(newProduct);
+    if (editingProduct) {
+      const updatedProduct: Product = {
+        ...editingProduct,
+        name: newName,
+        description: newDesc,
+        category: newCategory,
+        priceUSD: usd,
+        priceUYU: uyu,
+        score: newScore,
+        imageUrl: finalImage,
+        images: extraImagesList.length > 0 ? extraImagesList : undefined,
+        videoUrl: videoUrlInput.trim() || undefined,
+        isOfferBonus: isOfferBonus || newScore <= 2
+      };
+      onUpdateProduct(updatedProduct);
+      setEditingProduct(null);
+    } else {
+      const newProduct: Product = {
+        id: Date.now().toString(),
+        name: newName,
+        description: newDesc,
+        category: newCategory,
+        priceUSD: usd,
+        priceUYU: uyu,
+        score: newScore,
+        imageUrl: finalImage,
+        images: extraImagesList.length > 0 ? extraImagesList : undefined,
+        videoUrl: videoUrlInput.trim() || undefined,
+        status: 'disponible',
+        isOfferBonus: isOfferBonus || newScore <= 2
+      };
+      onAddProduct(newProduct);
+    }
 
     // Reset Form
     setNewName('');
@@ -127,6 +173,8 @@ export default function AdminPanel({
     setNewScore(5);
     setNewImageUrl('');
     setUploadedBase64('');
+    setExtraImagesText('');
+    setVideoUrlInput('');
     setIsOfferBonus(false);
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
@@ -288,11 +336,25 @@ export default function AdminPanel({
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         
-        {/* Form to ADD product */}
+        {/* Form to ADD or EDIT product */}
         <div className="bg-white dark:bg-neutral-900 p-6 rounded-2xl border border-neutral-200 dark:border-neutral-800 shadow-xs h-fit space-y-6">
-          <div className="flex items-center gap-2 border-b border-neutral-100 dark:border-neutral-800 pb-3">
-            <Plus className="h-5 w-5 text-indigo-500" />
-            <h3 className="font-bold text-lg text-neutral-900 dark:text-white">Agregar Nuevo Artículo</h3>
+          <div className="flex items-center justify-between border-b border-neutral-100 dark:border-neutral-800 pb-3">
+            <div className="flex items-center gap-2">
+              {editingProduct ? <Pencil className="h-5 w-5 text-amber-500 animate-pulse" /> : <Plus className="h-5 w-5 text-indigo-500" />}
+              <h3 className="font-bold text-lg text-neutral-900 dark:text-white">
+                {editingProduct ? 'Editar Artículo' : 'Agregar Nuevo Artículo'}
+              </h3>
+            </div>
+            {editingProduct && (
+              <button
+                type="button"
+                onClick={handleCancelEdit}
+                className="px-2.5 py-1 text-xs border border-neutral-300 dark:border-neutral-700 bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 hover:bg-rose-550 hover:text-rose-500 rounded-md flex items-center gap-1 transition-colors font-bold"
+                title="Cancelar edición"
+              >
+                <X className="h-3.5 w-3.5" /> Cancelar
+              </button>
+            )}
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -422,6 +484,40 @@ export default function AdminPanel({
               )}
             </div>
 
+            {/* Multiple extra images */}
+            <div>
+              <label className="block text-xs font-semibold text-neutral-400 uppercase tracking-wider mb-1 flex items-center gap-1">
+                <ImageIcon className="h-3.5 w-3.5" /> Imágenes adicionales (Opcional)
+              </label>
+              <textarea
+                placeholder="https://link-imagen1.jpg&#10;https://link-imagen2.jpg&#10;(Una URL por línea, o separadas por comas)"
+                value={extraImagesText}
+                onChange={(e) => setExtraImagesText(e.target.value)}
+                rows={3}
+                className="w-full px-3 py-2 bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-xl text-neutral-900 dark:text-white focus:ring-2 focus:ring-indigo-500 text-xs font-mono"
+              />
+              <span className="text-[10px] text-neutral-400 block mt-0.5 leading-relaxed">
+                Agrega fotos adicionales para que el comprador las vea en un carrusel interactivo táctil. Se abrirán en tamaño grande al tocarlas.
+              </span>
+            </div>
+
+            {/* Video Url Input */}
+            <div>
+              <label className="block text-xs font-semibold text-neutral-400 uppercase tracking-wider mb-1 flex items-center gap-1">
+                <Video className="h-3.5 w-3.5" /> URL de Video del Producto (Opcional)
+              </label>
+              <input
+                type="text"
+                placeholder="Ej. https://www.youtube.com/watch?v=... o archivo mp4"
+                value={videoUrlInput}
+                onChange={(e) => setVideoUrlInput(e.target.value)}
+                className="w-full px-3 py-2 bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-xl text-neutral-900 dark:text-white focus:ring-2 focus:ring-indigo-500 text-xs"
+              />
+              <span className="text-[10px] text-neutral-400 block mt-0.5 leading-relaxed">
+                Enlaces de YouTube, Shorts, o videos MP4 directos. Se reproducirán directamente en el carrusel para el comprador.
+              </span>
+            </div>
+
             <div className="flex items-center gap-2 pt-2">
               <input
                 type="checkbox"
@@ -437,10 +533,22 @@ export default function AdminPanel({
 
             <button
               type="submit"
-              className="w-full mt-4 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-semibold transition-colors flex items-center justify-center gap-2 text-sm"
+              className={`w-full mt-4 py-3 text-white rounded-xl font-bold transition-all flex items-center justify-center gap-2 text-sm ${
+                editingProduct 
+                  ? 'bg-amber-500 hover:bg-amber-600 border-2 border-black text-black font-black' 
+                  : 'bg-indigo-600 hover:bg-indigo-750'
+              }`}
               id="submit-product-btn"
             >
-              <Plus className="h-4 w-4" /> Registrar Artículo
+              {editingProduct ? (
+                <>
+                  <CheckCircle className="h-4 w-4" /> Guardar Cambios
+                </>
+              ) : (
+                <>
+                  <Plus className="h-4 w-4" /> Registrar Artículo
+                </>
+              )}
             </button>
           </form>
         </div>
@@ -582,6 +690,32 @@ export default function AdminPanel({
 
                       {/* Actions */}
                       <td className="py-3 px-2 text-right">
+                        <button
+                          onClick={() => {
+                            setEditingProduct(product);
+                            setNewName(product.name);
+                            setNewDesc(product.description || '');
+                            setNewCategory(product.category);
+                            setNewPriceUSD(product.priceUSD.toString());
+                            setNewPriceUYU(product.priceUYU.toString());
+                            setNewScore(product.score);
+                            setImageType('url');
+                            setNewImageUrl(product.imageUrl);
+                            setUploadedBase64('');
+                            setIsOfferBonus(!!product.isOfferBonus);
+                            setExtraImagesText(product.images ? product.images.join('\n') : '');
+                            setVideoUrlInput(product.videoUrl || '');
+                            
+                            // Scroll up smoothly to the form
+                            window.scrollTo({ top: 350, behavior: 'smooth' });
+                          }}
+                          className="p-1.5 text-neutral-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-neutral-800 rounded-lg transition-colors mr-1"
+                          title="Editar artículo del garage sale"
+                          id={`edit-prod-${product.id}`}
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </button>
+
                         <button
                           onClick={() => {
                             if (confirm(`¿Sacar del catálogo '${product.name}'?`)) {

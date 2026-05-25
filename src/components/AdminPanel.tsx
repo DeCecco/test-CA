@@ -18,10 +18,24 @@ import {
   Image as ImageIcon,
   Pencil,
   Video,
-  X
+  X,
+  Shield,
+  ShieldAlert,
+  Smartphone,
+  Key,
+  RefreshCw,
+  LogOut,
+  Check,
+  Settings
 } from 'lucide-react';
 import { Product, ProductStatus } from '../types';
 import { CATEGORIES } from '../data';
+import {
+  verifyTOTP,
+  generateRandomBase32Secret,
+  getOTPAuthURL,
+  generateBackupCodes
+} from '../utils/totp';
 
 interface AdminPanelProps {
   products: Product[];
@@ -42,10 +56,31 @@ export default function AdminPanel({
   onImportCatalog,
   onResetCatalog,
 }: AdminPanelProps) {
-  // Security
+  // Security States
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [password, setPassword] = useState('');
   const [authError, setAuthError] = useState('');
+
+  // 2FA Login States
+  const [loginStep, setLoginStep] = useState<'password' | '2fa'>('password');
+  const [totpCode, setTotpCode] = useState('');
+
+  // Navigation tabs in panel
+  const [activeTab, setActiveTab] = useState<'catalog' | 'security'>('catalog');
+
+  // 2FA Setup state variables
+  const [setupStep, setSetupStep] = useState<1 | 2 | 3>(1);
+  const [tempSecret, setTempSecret] = useState('');
+  const [tempCode, setTempCode] = useState('');
+  const [setupError, setSetupError] = useState('');
+  const [createdBackupCodes, setCreatedBackupCodes] = useState<string[]>([]);
+
+  // Password modify states
+  const [pwdCurrent, setPwdCurrent] = useState('');
+  const [pwdNew, setPwdNew] = useState('');
+  const [pwdConfirm, setPwdConfirm] = useState('');
+  const [pwdError, setPwdError] = useState('');
+  const [pwdSuccess, setPwdSuccess] = useState('');
 
   // Form states
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
@@ -68,14 +103,65 @@ export default function AdminPanel({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const importInputRef = useRef<HTMLInputElement>(null);
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (password === 'canada2026') {
-      setIsAuthenticated(true);
-      setAuthError('');
+    setAuthError('');
+
+    if (loginStep === 'password') {
+      const storedPwd = localStorage.getItem('admin_pwd') || 'canada2026';
+      if (password === storedPwd) {
+        const is2fa = localStorage.getItem('admin_2fa_enabled') === 'true';
+        if (is2fa) {
+          setLoginStep('2fa');
+        } else {
+          setIsAuthenticated(true);
+        }
+      } else {
+        const hasCustomPwd = !!localStorage.getItem('admin_pwd');
+        setAuthError(
+          hasCustomPwd
+            ? 'Contraseña incorrecta. Utiliza la clave personalizada que guardaste.'
+            : 'Contraseña incorrecta. Pista: canada2026'
+        );
+      }
     } else {
-      setAuthError('Contraseña incorrecta. Pista: canada2026');
+      // 2FA validation step
+      const code = totpCode.trim();
+      if (!code) {
+        setAuthError('Por favor ingresa el código.');
+        return;
+      }
+
+      // Check if it's an emergency backup code
+      const storedCodesStr = localStorage.getItem('admin_backup_codes');
+      const backupCodesList: string[] = storedCodesStr ? JSON.parse(storedCodesStr) : [];
+      if (backupCodesList.includes(code)) {
+        const remaining = backupCodesList.filter((c) => c !== code);
+        localStorage.setItem('admin_backup_codes', JSON.stringify(remaining));
+        setIsAuthenticated(true);
+        setAuthError('');
+        alert(`¡Código de emergencia válido! Se ha eliminado de la lista. Te quedan ${remaining.length} códigos de recuperación.`);
+        return;
+      }
+
+      // Check standard Authenticator time-based token
+      const secret = localStorage.getItem('admin_2fa_secret') || '';
+      const isValid = await verifyTOTP(code, secret);
+      if (isValid) {
+        setIsAuthenticated(true);
+        setAuthError('');
+      } else {
+        setAuthError('Código inválido o ya expiró. Asegúrate de verificar la hora en tu dispositivo móvil.');
+      }
     }
+  };
+
+  const handleLogout = () => {
+    setIsAuthenticated(false);
+    setPassword('');
+    setTotpCode('');
+    setLoginStep('password');
+    setActiveTab('catalog');
   };
 
   // Turn image upload into base64
@@ -207,45 +293,111 @@ export default function AdminPanel({
 
   if (!isAuthenticated) {
     return (
-      <div id="admin-auth-panel" className="max-w-md mx-auto my-12 p-8 bg-white dark:bg-neutral-900 rounded-3xl border border-neutral-200 dark:border-neutral-800 shadow-xl">
+      <div id="admin-auth-panel" className="max-w-md mx-auto my-12 p-8 bg-white dark:bg-neutral-900 rounded-3xl border-2 border-black dark:border-neutral-800 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] transition-all">
         <div className="flex flex-col items-center text-center">
-          <div className="p-3 bg-indigo-100 dark:bg-indigo-950/40 rounded-full text-indigo-600 dark:text-indigo-400 mb-4">
-            <Lock className="h-8 w-8" />
-          </div>
-          <h2 className="text-2xl font-bold font-sans tracking-tight text-neutral-900 dark:text-white mb-2">
-            Panel de Gestión - Mudanza
-          </h2>
-          <p className="text-sm text-neutral-500 dark:text-neutral-400 mb-6">
-            Ingresá la contraseña de administración para actualizar precios, marcar ventas y agregar productos al catálogo.
-          </p>
+          {loginStep === 'password' ? (
+            <>
+              <div className="p-3 bg-indigo-150 dark:bg-indigo-950/40 border border-black rounded-full text-indigo-600 dark:text-indigo-400 mb-4 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+                <Lock className="h-8 w-8" />
+              </div>
+              <h2 className="text-2xl font-black font-sans tracking-tight text-neutral-900 dark:text-white mb-2 uppercase">
+                Panel de Gestión
+              </h2>
+              <p className="text-xs text-neutral-500 dark:text-neutral-400 mb-6 font-bold">
+                Ingresá la contraseña de administración para actualizar precios, marcar ventas y agregar productos al catálogo.
+              </p>
 
-          <form onSubmit={handleLogin} className="w-full space-y-4">
-            <div>
-              <label className="block text-xs font-semibold text-neutral-400 uppercase tracking-wider mb-1 text-left">
-                Contraseña Administrativa
-              </label>
-              <input
-                type="password"
-                placeholder="Escribe la clave (pista: canada2026)"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-4 py-3 bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-xl text-neutral-900 dark:text-white focus:ring-2 focus:ring-indigo-500 text-sm"
-                id="admin-pass-input"
-              />
-            </div>
+              {localStorage.getItem('admin_2fa_enabled') === 'true' && (
+                <div className="mb-4 w-full p-2.5 bg-indigo-50 dark:bg-indigo-950/20 border-2 border-indigo-200 dark:border-indigo-900/30 rounded-xl text-indigo-700 dark:text-indigo-400 font-bold text-[11px] flex items-center justify-center gap-2">
+                  <Shield className="h-4 w-4 text-indigo-500 fill-indigo-200/50 animate-pulse" /> Autenticación de Doble Factor (2FA) Habilitada
+                </div>
+              )}
 
-            {authError && (
-              <p className="text-xs font-medium text-rose-500 text-left">{authError}</p>
-            )}
+              <form onSubmit={handleLogin} className="w-full space-y-4 text-left">
+                <div>
+                  <label className="block text-xs font-semibold text-neutral-400 uppercase tracking-wider mb-1">
+                    Contraseña Administrativa
+                  </label>
+                  <input
+                    type="password"
+                    placeholder={localStorage.getItem('admin_pwd') ? "Tu clave personalizada" : "Escribe la clave (pista: canada2026)"}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="w-full px-4 py-3 bg-neutral-50 dark:bg-neutral-800 border-2 border-black rounded-xl text-neutral-900 dark:text-white focus:ring-2 focus:ring-indigo-500 text-sm font-mono"
+                    id="admin-pass-input"
+                  />
+                </div>
 
-            <button
-              type="submit"
-              className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-semibold transition-colors flex items-center justify-center gap-2"
-              id="admin-auth-submit-btn"
-            >
-              <Unlock className="h-4 w-4" /> Entrar al Panel
-            </button>
-          </form>
+                {authError && (
+                  <p className="text-xs font-bold text-rose-500">{authError}</p>
+                )}
+
+                <button
+                  type="submit"
+                  className="w-full py-3.5 bg-indigo-600 hover:bg-indigo-750 text-white border-2 border-black rounded-xl font-bold transition-all shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] flex items-center justify-center gap-2 uppercase tracking-wide text-xs"
+                  id="admin-auth-submit-btn"
+                >
+                  <Unlock className="h-4 w-4 stroke-[2.5px]" /> {localStorage.getItem('admin_2fa_enabled') === 'true' ? 'Siguiente Paso' : 'Entrar al Panel'}
+                </button>
+              </form>
+            </>
+          ) : (
+            <>
+              <div className="p-3 bg-amber-100 dark:bg-amber-950/40 border border-black rounded-full text-amber-600 dark:text-amber-400 mb-4 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] animate-bounce">
+                <Smartphone className="h-8 w-8" />
+              </div>
+              <h2 className="text-2xl font-black font-sans tracking-tight text-neutral-900 dark:text-white mb-2 uppercase">
+                Verificación de 2 Factores
+              </h2>
+              <p className="text-xs text-neutral-500 dark:text-neutral-400 mb-6 font-bold leading-relaxed">
+                Ingresá el código de 6 dígitos de tu aplicación **Google Authenticator** o Microsoft Authenticator, o un **código de emergencia**.
+              </p>
+
+              <form onSubmit={handleLogin} className="w-full space-y-4 text-left">
+                <div>
+                  <label className="block text-xs font-semibold text-neutral-400 uppercase tracking-wider mb-1 flex justify-between items-center">
+                    <span>Código de Seguridad (TOTP)</span>
+                    <span className="text-[10px] text-amber-500 font-mono">6 dígitos o Código de Emergencia</span>
+                  </label>
+                  <input
+                    type="text"
+                    maxLength={12}
+                    placeholder="Ej. 123456"
+                    value={totpCode}
+                    onChange={(e) => setTotpCode(e.target.value)}
+                    className="w-full px-4 py-3 text-center bg-neutral-50 dark:bg-neutral-800 border-2 border-black rounded-xl text-neutral-900 dark:text-white focus:ring-2 focus:ring-indigo-500 text-lg font-mono font-black tracking-widest"
+                    id="admin-totp-input"
+                    autoFocus
+                  />
+                </div>
+
+                {authError && (
+                  <p className="text-xs font-bold text-rose-500">{authError}</p>
+                )}
+
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setLoginStep('password');
+                      setTotpCode('');
+                      setAuthError('');
+                    }}
+                    className="flex-1 py-3 bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 border-2 border-black rounded-xl font-bold transition-all text-xs text-neutral-700 dark:text-neutral-300 uppercase"
+                  >
+                    Atrás
+                  </button>
+                  <button
+                    type="submit"
+                    className="flex-[2] py-3 bg-amber-500 hover:bg-amber-600 text-black border-2 border-black rounded-xl font-black transition-all shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] flex items-center justify-center gap-1.5 uppercase tracking-wide text-xs"
+                    id="admin-auth-2fa-submit-btn"
+                  >
+                    <Shield className="h-4 w-4 text-black fill-black/20" /> Verificar Código
+                  </button>
+                </div>
+              </form>
+            </>
+          )}
         </div>
       </div>
     );
@@ -253,7 +405,49 @@ export default function AdminPanel({
 
   return (
     <div id="admin-dashboard-panel" className="space-y-8">
-      {/* Overview stats and controls */}
+      {/* Top Navigation Tabs */}
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b-2 border-black dark:border-neutral-800 pb-4">
+        <div className="flex gap-2 bg-neutral-100 dark:bg-neutral-800 p-1 border-2 border-black dark:border-neutral-700">
+          <button
+            onClick={() => setActiveTab('catalog')}
+            className={`px-4 py-2 font-bold text-xs uppercase flex items-center gap-1.5 transition-all ${
+              activeTab === 'catalog'
+                ? 'bg-black text-white dark:bg-white dark:text-black border-2 border-black'
+                : 'text-neutral-600 dark:text-neutral-400 hover:text-black dark:hover:text-white border border-transparent'
+            }`}
+          >
+            <BookOpen className="h-4 w-4" /> Gestión de Catálogo
+          </button>
+          <button
+            onClick={() => {
+              setActiveTab('security');
+              setSetupStep(1);
+              setTempCode('');
+              setSetupError('');
+              setPwdSuccess('');
+              setPwdError('');
+            }}
+            className={`px-4 py-2 font-bold text-xs uppercase flex items-center gap-1.5 transition-all ${
+              activeTab === 'security'
+                ? 'bg-black text-white dark:bg-white dark:text-black border-2 border-black'
+                : 'text-neutral-600 dark:text-neutral-400 hover:text-black dark:hover:text-white border border-transparent'
+            }`}
+          >
+            <Shield className="h-4 w-4 text-amber-500 fill-amber-500/10" /> Seguridad & 2FA
+          </button>
+        </div>
+
+        <button
+          onClick={handleLogout}
+          className="px-4 py-2 bg-rose-50 dark:bg-rose-950/10 text-rose-600 hover:bg-rose-105 hover:text-rose-700 dark:hover:bg-rose-900/30 border-2 border-rose-500 font-extrabold text-xs flex items-center gap-1.5 uppercase transition-all shadow-[2px_2px_0px_0px_rgba(244,63,94,1)] active:translate-x-0.5 active:translate-y-0.5"
+        >
+          <LogOut className="h-4 w-4 stroke-[2.5px]" /> Cerrar Sesión
+        </button>
+      </div>
+
+      {activeTab === 'catalog' ? (
+        <>
+          {/* Overview stats and controls */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div className="bg-white dark:bg-neutral-900 p-6 border-2 border-black dark:border-neutral-700 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] dark:shadow-[4px_4px_0px_0px_rgba(255,255,255,0.08)]">
           <span className="text-xs font-mono uppercase tracking-wider text-neutral-400 block mb-1">Total Artículos</span>
@@ -738,6 +932,402 @@ export default function AdminPanel({
         </div>
 
       </div>
+        </>
+      ) : (
+        <div id="admin-security-settings" className="space-y-8 animate-fadeIn">
+          {/* Header Security State Banner */}
+          <div className="p-6 bg-neutral-900 border-2 border-black rounded-3xl text-white flex flex-col md:flex-row items-center justify-between gap-4 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]">
+            <div className="flex items-center gap-3.5">
+              <div className="p-3 bg-neutral-800 text-[#FFE600] rounded-2xl border border-neutral-700">
+                <Shield className="h-7 w-7 fill-[#FFE600]/10" />
+              </div>
+              <div className="text-left">
+                <h3 className="font-extrabold text-base uppercase tracking-tight">Estado de la Seguridad Administrativa</h3>
+                <p className="text-xs text-neutral-400 mt-1">
+                  Protegé tu panel e impedí cambios no autorizados en los precios de mudanza o el stock de productos.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              {localStorage.getItem('admin_2fa_enabled') === 'true' ? (
+                <span className="px-4 py-1.5 bg-emerald-500/20 text-emerald-400 border border-emerald-500 font-extrabold text-xs rounded-full uppercase flex items-center gap-1.5">
+                  <span className="h-2 w-2 rounded-full bg-emerald-400 animate-ping" /> Máxima Seguridad (Password + 2FA Activo)
+                </span>
+              ) : (
+                <span className="px-4 py-1.5 bg-amber-500/10 text-amber-400 border border-amber-500 font-extrabold text-xs rounded-full uppercase flex items-center gap-1.5">
+                  <span className="h-2 w-2 rounded-full bg-amber-400 animate-pulse" /> Seguridad Básica (Sólo Contraseña)
+                </span>
+              )}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 text-left">
+            {/* Password section */}
+            <div className="bg-white dark:bg-neutral-900 p-6 border-2 border-black dark:border-neutral-800 rounded-3xl shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] dark:shadow-[4px_4px_0px_0px_rgba(255,255,255,0.05)]">
+              <div className="flex items-center gap-2 mb-4">
+                <span className="p-1.5 bg-indigo-50 dark:bg-indigo-950/20 text-indigo-600 dark:text-indigo-400 border border-black rounded-lg">
+                  <Key className="h-4 w-4" />
+                </span>
+                <h4 className="font-black text-sm uppercase tracking-tight text-neutral-900 dark:text-white">
+                  Cambiar Contraseña de Acceso
+                </h4>
+              </div>
+
+              <p className="text-xs text-neutral-500 dark:text-neutral-400 mb-6 leading-relaxed">
+                Por defecto, la contraseña de tu panel es <span className="font-mono font-bold bg-neutral-100 dark:bg-neutral-800 px-1 py-0.5 border text-neutral-800 dark:text-neutral-200">canada2026</span>. Te recomendamos cambiarla por una personalizada para evitar accesos indebidos.
+              </p>
+
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  setPwdError('');
+                  setPwdSuccess('');
+
+                  const currentSaved = localStorage.getItem('admin_pwd') || 'canada2026';
+                  if (pwdCurrent !== currentSaved) {
+                    setPwdError('La contraseña actual es incorrecta.');
+                    return;
+                  }
+
+                  if (pwdNew.trim().length < 4) {
+                    setPwdError('La nueva contraseña debe tener al menos 4 caracteres.');
+                    return;
+                  }
+
+                  if (pwdNew !== pwdConfirm) {
+                    setPwdError('Las contraseñas nuevas no coinciden.');
+                    return;
+                  }
+
+                  localStorage.setItem('admin_pwd', pwdNew.trim());
+                  setPwdSuccess('¡Contraseña actualizada con éxito!');
+                  setPwdCurrent('');
+                  setPwdNew('');
+                  setPwdConfirm('');
+                }}
+                className="space-y-4"
+              >
+                <div>
+                  <label className="block text-[10px] font-bold text-neutral-400 uppercase tracking-wider mb-1">
+                    Contraseña actual
+                  </label>
+                  <input
+                    type="password"
+                    required
+                    value={pwdCurrent}
+                    onChange={(e) => setPwdCurrent(e.target.value)}
+                    className="w-full px-3.5 py-2.5 bg-neutral-50 dark:bg-neutral-800 border-2 border-black rounded-xl text-xs font-mono text-neutral-900 dark:text-white"
+                    placeholder="Escribe la clave actual"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-bold text-neutral-400 uppercase tracking-wider mb-1">
+                    Nueva contraseña
+                  </label>
+                  <input
+                    type="password"
+                    required
+                    value={pwdNew}
+                    onChange={(e) => setPwdNew(e.target.value)}
+                    className="w-full px-3.5 py-2.5 bg-neutral-50 dark:bg-neutral-800 border-2 border-black rounded-xl text-xs font-mono text-neutral-900 dark:text-white"
+                    placeholder="Elige una clave fuerte"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-bold text-neutral-400 uppercase tracking-wider mb-1">
+                    Confirmar nueva contraseña
+                  </label>
+                  <input
+                    type="password"
+                    required
+                    value={pwdConfirm}
+                    onChange={(e) => setPwdConfirm(e.target.value)}
+                    className="w-full px-3.5 py-2.5 bg-neutral-50 dark:bg-neutral-800 border-2 border-black rounded-xl text-xs font-mono text-neutral-900 dark:text-white"
+                    placeholder="Repite tu nueva clave"
+                  />
+                </div>
+
+                {pwdError && <p className="text-xs font-bold text-rose-500">{pwdError}</p>}
+                {pwdSuccess && <p className="text-xs font-bold text-emerald-500 flex items-center gap-1"><Check className="h-4 w-4" /> {pwdSuccess}</p>}
+
+                <div className="flex flex-wrap gap-2 pt-2">
+                  <button
+                    type="submit"
+                    className="flex-1 min-w-[150px] py-3 bg-indigo-600 hover:bg-indigo-750 text-white font-bold border-2 border-black rounded-xl text-xs uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:translate-x-0.5 active:translate-y-0.5 transition-all"
+                  >
+                    Guardar nueva contraseña
+                  </button>
+                  {localStorage.getItem('admin_pwd') && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (confirm('¿Restablecer el acceso al password por defecto (canada2026)?')) {
+                          localStorage.removeItem('admin_pwd');
+                          setPwdSuccess('¡Contraseña restablecida a "canada2026" con éxito!');
+                        }
+                      }}
+                      className="px-3.5 py-3 bg-neutral-100 dark:bg-neutral-800 border-2 border-black rounded-xl text-xs font-bold hover:bg-neutral-200 text-neutral-800 dark:text-white"
+                    >
+                      Restablecer clave inicial
+                    </button>
+                  )}
+                </div>
+              </form>
+            </div>
+
+            {/* Google Authenticator Double Factor Section */}
+            <div className="bg-white dark:bg-neutral-900 p-6 border-2 border-black dark:border-neutral-800 rounded-3xl shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] dark:shadow-[4px_4px_0px_0px_rgba(255,255,255,0.05)]">
+              <div className="flex items-center gap-2 mb-4">
+                <span className="p-1.5 bg-amber-50 dark:bg-amber-950/20 text-amber-600 dark:text-amber-400 border border-black rounded-lg">
+                  <Smartphone className="h-4 w-4" />
+                </span>
+                <h4 className="font-black text-sm uppercase tracking-tight text-neutral-900 dark:text-white">
+                  Doble Factor (2FA - Google Authenticator / Authy)
+                </h4>
+              </div>
+
+              {localStorage.getItem('admin_2fa_enabled') !== 'true' ? (
+                /* Config flow wizard */
+                setupStep === 1 ? (
+                  <div className="space-y-4">
+                    <p className="text-xs text-neutral-500 dark:text-neutral-400 leading-relaxed">
+                      La validación de dos factores (2FA) vincula el acceso de este panel administrativo a una aplicación de seguridad móvil en tu teléfono inteligente (como **Google Authenticator**, **Microsoft Authenticator** o **Authy**).
+                    </p>
+                    <p className="text-xs text-neutral-500 dark:text-neutral-400 leading-relaxed font-bold">
+                      Beneficio: Aunque un tercero consiga o adivine tu contraseña escrita, le será imposible acceder ya que obligatoriamente se requiere ingresar el código dinámico de 6 dígitos que genera tu teléfono cada 30 segundos.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const sec = generateRandomBase32Secret(16);
+                        setTempSecret(sec);
+                        setSetupStep(2);
+                        setTempCode('');
+                        setSetupError('');
+                      }}
+                      className="w-full py-3.5 bg-amber-500 hover:bg-amber-600 text-black border-2 border-black rounded-xl font-bold uppercase text-xs flex items-center justify-center gap-1.5 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] transition-all active:translate-x-0.5 active:translate-y-0.5"
+                    >
+                      <Shield className="h-4 w-4 text-black fill-black/20" /> Activar Doble Factor de Google
+                    </button>
+                  </div>
+                ) : setupStep === 2 ? (
+                  <div className="space-y-4">
+                    <div className="p-3 bg-amber-50 dark:bg-amber-950/20 border border-amber-300 dark:border-amber-900/30 rounded-xl text-neutral-800 dark:text-neutral-300 text-xs leading-relaxed space-y-1">
+                      <p className="font-bold">📱 Sigue estos pasos para configurarlo:</p>
+                      <ol className="list-decimal pl-4 space-y-1 mt-1 font-medium text-[11px]">
+                        <li>Descargá **Google Authenticator** en tu celular desde el App Store o Play Store.</li>
+                        <li>Escaneá el código QR que se muestra abajo usando la opción "Escanear un código QR".</li>
+                        <li>Automáticamente se creará la cuenta "Mudanza Pablo" que genera códigos de 6 dígitos.</li>
+                      </ol>
+                    </div>
+
+                    <div className="flex flex-col items-center justify-center py-4 bg-neutral-100 dark:bg-neutral-950 rounded-2xl border-2 border-black w-full">
+                      {/* Generar QR URL */}
+                      <img
+                        src={`https://chart.googleapis.com/chart?chs=180x180&cht=qr&chl=${encodeURIComponent(
+                          getOTPAuthURL('pablomdececcoriosuy@gmail.com', 'Mudanza Uruguay-Canada', tempSecret)
+                        )}&choe=UTF-8`}
+                        alt="2FA QR Code"
+                        className="border-4 border-black bg-white inline-block shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]"
+                        referrerPolicy="no-referrer"
+                      />
+                      <div className="mt-4 text-center">
+                        <span className="text-[10px] text-neutral-400 font-bold uppercase tracking-widest block mb-0.5">Clave manual si el QR no escanea:</span>
+                        <div className="flex items-center justify-center gap-1.5">
+                          <span className="font-mono text-xs font-black bg-white dark:bg-neutral-800 px-2.5 py-1 border border-black rounded-md text-neutral-900 dark:text-white select-all">
+                            {tempSecret}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              navigator.clipboard.writeText(tempSecret);
+                              alert('¡Clave manual copiada al portapapeles!');
+                            }}
+                            className="bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 text-neutral-800 dark:text-white text-[10px] uppercase font-bold px-2 py-1 border border-black rounded-md transition-all active:scale-95"
+                          >
+                            Copiar
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="border-t border-black/15 dark:border-white/10 pt-4">
+                      <p className="text-xs font-bold text-neutral-900 dark:text-white mb-2 uppercase">Comprobemos el funcionamiento:</p>
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          maxLength={6}
+                          placeholder="Ej. 123456"
+                          value={tempCode}
+                          onChange={(e) => setTempCode(e.target.value)}
+                          className="flex-1 w-28 px-3 py-2 bg-neutral-100 dark:bg-neutral-800 border-2 border-black rounded-xl text-center font-mono font-black text-base tracking-widest text-neutral-900 dark:text-white"
+                        />
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            setSetupError('');
+                            const success = await verifyTOTP(tempCode, tempSecret);
+                            if (success) {
+                              const bCodes = generateBackupCodes(5);
+                              localStorage.setItem('admin_2fa_enabled', 'true');
+                              localStorage.setItem('admin_2fa_secret', tempSecret);
+                              localStorage.setItem('admin_backup_codes', JSON.stringify(bCodes));
+                              setCreatedBackupCodes(bCodes);
+                              setSetupStep(3);
+                            } else {
+                              setSetupError('El código es incorrecto o ya expiró. Asegúrate que tenga 6 dígitos y que tu celular tenga la hora en sincronía automática.');
+                            }
+                          }}
+                          className="px-4 py-2 bg-[#FFE600] text-black font-extrabold text-xs uppercase border-2 border-black rounded-xl transition-all shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:translate-x-0.5 active:translate-y-0.5"
+                        >
+                          Verificar y Guardar
+                        </button>
+                      </div>
+                      {setupError && (
+                        <p className="text-xs font-bold text-rose-500 mt-2">{setupError}</p>
+                      )}
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSetupStep(1);
+                        setTempSecret('');
+                        setTempCode('');
+                        setSetupError('');
+                      }}
+                      className="w-full py-2.5 bg-neutral-100 dark:bg-neutral-800 border-2 border-black hover:bg-neutral-200 text-neutral-800 dark:text-white font-extrabold text-xs uppercase rounded-xl mt-2"
+                    >
+                      Cancelar configuración
+                    </button>
+                  </div>
+                ) : (
+                  /* Step 3: Success and Backup codes display */
+                  <div className="space-y-4">
+                    <div className="p-4 bg-emerald-50 dark:bg-emerald-950/20 border-2 border-emerald-500 text-emerald-800 dark:text-emerald-400 rounded-2xl flex items-center gap-2.5">
+                      <CheckCircle className="h-6 w-6 stroke-[3px]" />
+                      <div className="text-left">
+                        <p className="font-extrabold text-sm uppercase">¡Doble factor 2FA Activado!</p>
+                        <p className="text-xs font-medium">A partir de ahora, cada vez que inicies sesión se te solicitará la confirmación en tu app móvil.</p>
+                      </div>
+                    </div>
+
+                    <div className="p-4 bg-amber-50 dark:bg-amber-950/20 border-2 border-amber-500 rounded-2xl space-y-2 text-left">
+                      <p className="font-bold text-xs uppercase text-amber-800 dark:text-amber-400 flex items-center gap-1">
+                        <ShieldAlert className="h-4 w-4 text-amber-600 fill-amber-100" /> Códigos de Emergencia Únicos
+                      </p>
+                      <p className="text-[11px] text-neutral-600 dark:text-neutral-400 leading-relaxed">
+                        Si pierdes acceso a tu celular, no podrás generar el código TOTP y quedarías fuera de tu panel. **Guarda estos códigos de recuperación ahora mismo** en un block de notas seguro. Cada código sirve una sola vez para saltear el paso de 2FA.
+                      </p>
+                      <div className="bg-white dark:bg-neutral-900 border border-amber-300 dark:border-amber-900/30 p-3 rounded-lg flex flex-col items-center">
+                        <div className="grid grid-cols-2 gap-2 w-full max-w-xs text-center">
+                          {createdBackupCodes.map((code, idx) => (
+                            <div key={idx} className="font-mono font-black text-neutral-850 dark:text-neutral-200 text-xs py-1 border border-neutral-200 dark:border-neutral-800 rounded-md bg-neutral-50 dark:bg-neutral-950">
+                              {code}
+                            </div>
+                          ))}
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            navigator.clipboard.writeText(createdBackupCodes.join('\n'));
+                            alert('¡Códigos de recuperación copiados!');
+                          }}
+                          className="mt-3 px-3.5 py-1.5 bg-black text-white hover:bg-neutral-800 dark:bg-white dark:text-black dark:hover:bg-neutral-100 text-[10px] font-extrabold uppercase border border-black rounded-md tracking-wider transition-all"
+                        >
+                          Copiar todos los códigos
+                        </button>
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSetupStep(1);
+                        setTempSecret('');
+                        setTempCode('');
+                        setSetupError('');
+                      }}
+                      className="w-full py-3 bg-black hover:bg-neutral-800 text-white font-extrabold text-xs uppercase border-2 border-black rounded-xl"
+                    >
+                      Volver a Configuración de Seguridad
+                    </button>
+                  </div>
+                )
+              ) : (
+                /* Already enabled block */
+                <div className="space-y-4">
+                  <div className="p-4 bg-emerald-50 dark:bg-emerald-900/30 border-2 border-emerald-500 text-emerald-800 dark:text-emerald-400 rounded-2xl flex items-center gap-3 text-left">
+                    <Shield className="h-6 w-6 text-emerald-500 fill-emerald-100 dark:fill-emerald-900" />
+                    <div>
+                      <h5 className="font-extrabold text-xs uppercase">Verificación de 2 factores Activa</h5>
+                      <p className="text-[10px] text-neutral-500 dark:text-emerald-400 mt-0.5">Dispositivo móvil sincronizado correctamente.</p>
+                    </div>
+                  </div>
+
+                  <div className="p-4 bg-neutral-50 dark:bg-neutral-950 border border-neutral-300 dark:border-neutral-800 rounded-2xl space-y-2 text-left">
+                    <div className="flex justify-between items-center pb-2 border-b border-black/10 dark:border-white/10">
+                      <span className="text-[10px] text-neutral-500 uppercase tracking-wider font-extrabold">Códigos de Emergencia restantes:</span>
+                      <span className="text-xs font-black font-mono text-indigo-600 bg-indigo-50 dark:bg-indigo-950 px-2 py-0.5 border rounded-lg">
+                        {localStorage.getItem('admin_backup_codes') ? JSON.parse(localStorage.getItem('admin_backup_codes')!).length : 0} activos
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2 pt-2 text-center max-w-xs mx-auto">
+                      {(localStorage.getItem('admin_backup_codes') ? JSON.parse(localStorage.getItem('admin_backup_codes')!) : []).map((code: string, idx: number) => (
+                        <div key={idx} className="font-mono font-black text-xs text-neutral-700 dark:text-neutral-400 py-1 border dark:border-neutral-850 rounded bg-white dark:bg-neutral-900 inline-block">
+                          {code}
+                        </div>
+                      ))}
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (confirm('¿Generar un nuevo lote de 5 códigos de emergencia? Los anteriores dejarán de funcionar.')) {
+                          const newCodes = generateBackupCodes(5);
+                          localStorage.setItem('admin_backup_codes', JSON.stringify(newCodes));
+                          alert('¡Se han generado y guardado 5 códigos de emergencia nuevos! Asegúrate de guardarlos.');
+                          window.location.reload();
+                        }
+                      }}
+                      className="w-full py-2 bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 border-2 border-black rounded-lg text-[10px] text-neutral-700 dark:text-white font-bold uppercase mt-4 transition-all"
+                    >
+                      Renovar Códigos de Emergencia
+                    </button>
+                  </div>
+
+                  <div className="pt-4 border-t border-black/10 dark:border-white/10">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const passConfirm = prompt('Ingresa tu contraseña actual para confirmar la desactivación del Doble Factor (2FA):');
+                        if (passConfirm === null) return;
+                        const savedPass = localStorage.getItem('admin_pwd') || 'canada2026';
+                        if (passConfirm === savedPass) {
+                          localStorage.removeItem('admin_2fa_enabled');
+                          localStorage.removeItem('admin_2fa_secret');
+                          localStorage.removeItem('admin_backup_codes');
+                          alert('La protección de Doble Factor (2FA) se ha desactivado con éxito.');
+                          window.location.reload();
+                        } else {
+                          alert('Contraseña incorrecta. No se pudo desactivar el Doble Factor.');
+                        }
+                      }}
+                      className="w-full py-3 bg-rose-50 dark:bg-rose-950/20 text-rose-600 border border-rose-500 hover:bg-rose-100 hover:text-rose-700 font-bold text-xs uppercase rounded-xl transition-all"
+                    >
+                      Desactivar Doble Factor (MFA)
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

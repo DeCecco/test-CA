@@ -36,9 +36,22 @@ export default function MysteryBox({
       count++;
       if (count > 15) {
         clearInterval(interval);
-        // Select the final random gift
-        const randomIndex = Math.floor(Math.random() * availableGifts.length);
-        const selected = availableGifts[randomIndex];
+        
+        // Select final gift using our custom raffle weights
+        const weights = availableGifts.map(g => g.raffleWeight ?? 100);
+        const totalWeight = weights.reduce((sum, w) => sum + w, 0);
+        
+        let randomValue = Math.random() * totalWeight;
+        let selected = availableGifts[availableGifts.length - 1]; // fallback
+        
+        for (let i = 0; i < availableGifts.length; i++) {
+          randomValue -= weights[i];
+          if (randomValue <= 0) {
+            selected = availableGifts[i];
+            break;
+          }
+        }
+
         setCurrentPrize(selected);
         onSelectGift(selected);
         setIsOpening(false);
@@ -114,9 +127,38 @@ export default function MysteryBox({
                 <h3 className="text-2xl font-black font-sans tracking-tight mb-2 uppercase text-neutral-950 dark:text-white leading-tight">
                   {textDict.unlockedTitle}
                 </h3>
-                <p className="text-xs text-neutral-650 dark:text-neutral-400 mb-6 max-w-xs mx-auto font-bold">
+                <p className="text-xs text-neutral-650 dark:text-neutral-400 mb-5 max-w-xs mx-auto font-bold">
                   {textDict.unlockedDesc}
                 </p>
+
+                {/* Expected probabilities showcase */}
+                {availableGifts.length > 0 && !isOpening && (
+                  <div className="w-full max-h-36 overflow-y-auto mb-6 p-3 bg-neutral-50 dark:bg-neutral-850 border-2 border-black rounded-xl text-left space-y-1.5 font-sans">
+                    <span className="text-[10px] font-black text-neutral-400 dark:text-neutral-500 uppercase tracking-widest block mb-1">🎁 PROBABILIDAD DE PREMIOS</span>
+                    <div className="divide-y divide-neutral-200 dark:divide-neutral-750">
+                      {(() => {
+                        const totalWeight = availableGifts.reduce((sum, g) => sum + (g.raffleWeight ?? 100), 0);
+                        return [...availableGifts]
+                          .map(g => ({
+                            g,
+                            prob: totalWeight > 0 ? (((g.raffleWeight ?? 100) / totalWeight) * 100) : 0
+                          }))
+                          .sort((a, b) => b.prob - a.prob)
+                          .map(({ g, prob }, idx) => (
+                            <div key={idx} className="flex items-center justify-between py-1.5 text-[11px]">
+                              <span className="font-bold text-neutral-800 dark:text-neutral-200 truncate pr-2 flex items-center gap-1.5">
+                                <span className={`h-1.5 w-1.5 rounded-full ${prob < 15 ? 'bg-indigo-500 animate-pulse' : 'bg-neutral-400'}`} />
+                                {g.name}
+                              </span>
+                              <span className="font-mono font-black text-[#00A650] dark:text-emerald-400 flex-shrink-0 bg-emerald-50 dark:bg-emerald-950/40 px-1.5 border border-emerald-200 dark:border-emerald-900 rounded text-[10px]">
+                                {prob.toFixed(1)}%
+                              </span>
+                            </div>
+                          ));
+                      })()}
+                    </div>
+                  </div>
+                )}
 
                 {/* Animated Interactive Box */}
                 <motion.div

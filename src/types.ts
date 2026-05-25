@@ -13,6 +13,7 @@ export interface Product {
   videoUrl?: string; // Optional video URL or HTML5/YouTube embed
   status: ProductStatus;
   isOfferBonus?: boolean; // Can be claimed or won as gift
+  raffleWeight?: number; // Relative weight in the surprise box raffle (e.g. 100 standard, 10 rare)
 }
 
 export interface CartItem {

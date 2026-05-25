@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Gift, Sparkles, Check, RefreshCw, X, ArrowRight } from 'lucide-react';
 import { Product } from '../types';
+import { categoryTranslations } from '../translations';
 
 interface MysteryBoxProps {
   availableGifts: Product[];
@@ -9,6 +10,7 @@ interface MysteryBoxProps {
   onClose: () => void;
   hasWon: boolean;
   wonGiftProduct: Product | null;
+  lang?: 'es' | 'en';
 }
 
 export default function MysteryBox({
@@ -17,6 +19,7 @@ export default function MysteryBox({
   onClose,
   hasWon,
   wonGiftProduct,
+  lang = 'es',
 }: MysteryBoxProps) {
   const [isOpening, setIsOpening] = useState(false);
   const [shuffleIndex, setShuffleIndex] = useState(0);
@@ -43,6 +46,37 @@ export default function MysteryBox({
     }, 120);
   };
 
+  const textDict = {
+    es: {
+      headerBadge: 'Sorteo de Mudanza',
+      unlockedTitle: '¡Caja de Regalos Desbloqueada! 🎁',
+      unlockedDesc: 'Por llevar un producto premium, te regalamos un artículo sorpresa de puntuación media/baja al azar para acelerar el vaciado de la casa.',
+      shuffling: 'REVOLVIENDO CONTENEDOR...',
+      possibility: 'Posibilidad: ',
+      spinBtn: 'Tirar de la Ruleta',
+      wonCongrats: '¡Premio Conseguido!',
+      categoryLabel: 'Categoría',
+      scoreLabel: 'Puntuación',
+      giftCost: 'Costo del regalo',
+      free: '¡GRATIS ($0)!',
+      claimBtn: 'Excelente, ¡Lo quiero! 💪',
+    },
+    en: {
+      headerBadge: 'Moving Raffle',
+      unlockedTitle: 'Gift Box Unlocked! 🎁',
+      unlockedDesc: 'For purchasing a premium item, we give you a random medium/lower-score surprise item to speed up household clearance.',
+      shuffling: 'SHUFFLING CONTAINER...',
+      possibility: 'Possible: ',
+      spinBtn: 'Spin the Wheel',
+      wonCongrats: 'Prize Unlocked!',
+      categoryLabel: 'Category',
+      scoreLabel: 'Score',
+      giftCost: 'Gift Cost',
+      free: 'FREE ($0)!',
+      claimBtn: 'Excellent, I want it! 💪',
+    }
+  }[lang];
+
   return (
     <div id="mystery-box-container" className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 p-4 backdrop-blur-xs">
       <motion.div
@@ -56,7 +90,7 @@ export default function MysteryBox({
         <div className="p-6 pb-0 flex justify-between items-center relative z-10">
           <div className="flex items-center gap-2">
             <Sparkles className="h-5 w-5 text-amber-500 animate-pulse" />
-            <span className="text-xs font-mono uppercase tracking-widest text-[#3483FA] font-black">Sorteo de Mudanza</span>
+            <span className="text-xs font-mono uppercase tracking-widest text-[#3483FA] font-black">{textDict.headerBadge}</span>
           </div>
           <button
             onClick={onClose}
@@ -78,10 +112,10 @@ export default function MysteryBox({
                 className="flex flex-col items-center w-full"
               >
                 <h3 className="text-2xl font-black font-sans tracking-tight mb-2 uppercase text-neutral-950 dark:text-white leading-tight">
-                  ¡Caja de Regalos Desbloqueada! 🎁
+                  {textDict.unlockedTitle}
                 </h3>
                 <p className="text-xs text-neutral-650 dark:text-neutral-400 mb-6 max-w-xs mx-auto font-bold">
-                  Por llevar un producto premium, te regalamos un artículo sorpresa de puntuación media/baja al azar para acelerar el vaciado de la casa.
+                  {textDict.unlockedDesc}
                 </p>
 
                 {/* Animated Interactive Box */}
@@ -112,11 +146,11 @@ export default function MysteryBox({
                   <div className="space-y-2">
                     <p className="text-[#3483FA] font-mono text-xs font-black flex items-center justify-center gap-2">
                       <RefreshCw className="h-3.5 w-3.5 animate-spin stroke-[3px]" />
-                      REVOLVIENDO CONTENEDOR...
+                      {textDict.shuffling}
                     </p>
                     {availableGifts.length > 0 && (
                       <p className="text-neutral-500 font-bold text-xs">
-                        Posibilidad: "{availableGifts[shuffleIndex]?.name}"
+                        {textDict.possibility}"{availableGifts[shuffleIndex]?.name}"
                       </p>
                     )}
                   </div>
@@ -126,7 +160,7 @@ export default function MysteryBox({
                     className="w-full py-3.5 px-8 border-2 border-black bg-[#FFE600] text-black hover:bg-[#ffe600]/80 font-black uppercase tracking-wider text-xs shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all active:translate-x-0.5 active:translate-y-0.5 flex items-center justify-center gap-2"
                     id="open-box-spin-btn"
                   >
-                    Tirar de la Ruleta <ArrowRight className="h-4 w-4 stroke-[3px]" />
+                    {textDict.spinBtn} <ArrowRight className="h-4 w-4 stroke-[3px]" />
                   </button>
                 )}
               </motion.div>
@@ -139,7 +173,7 @@ export default function MysteryBox({
               >
                 <div className="relative mb-4">
                   <div className="bg-[#00A650] text-white font-black px-4 py-1 border-2 border-black text-xs uppercase tracking-wider mb-2 flex items-center gap-1 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
-                    <Sparkles className="h-3.5 w-3.5 fill-white" /> ¡Premio Conseguido!
+                    <Sparkles className="h-3.5 w-3.5 fill-white" /> {textDict.wonCongrats}
                   </div>
                 </div>
 
@@ -156,20 +190,20 @@ export default function MysteryBox({
                   {currentPrize.name}
                 </h3>
                 <p className="text-xs text-[#3483FA] font-mono font-bold mb-3 uppercase tracking-wide">
-                  Categoría: {currentPrize.category} • Puntuación: {currentPrize.score}⭐
+                  {textDict.categoryLabel}: {categoryTranslations[lang]?.[currentPrize.category] || currentPrize.category} • {textDict.scoreLabel}: {currentPrize.score}⭐
                 </p>
-                <p className="text-xs text-neutral-600 dark:text-neutral-300 max-w-xs mb-6 italic font-medium">
+                <p className="text-xs text-neutral-650 dark:text-neutral-300 max-w-xs mb-6 italic font-medium">
                   "{currentPrize.description}"
                 </p>
 
-                <div className="bg-neutral-100 dark:bg-neutral-800 rounded-none p-3 border-2 border-black w-full mb-6 text-left">
-                  <span className="text-[10px] uppercase font-mono text-neutral-550 block mb-1 font-bold">Costo del regalo</span>
+                <div className="bg-neutral-100 dark:bg-neutral-800 rounded-none p-3 border-2 border-black w-full mb-6 text-left font-sans">
+                  <span className="text-[10px] uppercase font-mono text-neutral-550 block mb-1 font-bold">{textDict.giftCost}</span>
                   <div className="flex justify-between items-center">
                     <span className="text-neutral-500 line-through text-xs font-bold font-mono">
                       US$ {currentPrize.priceUSD} / ${currentPrize.priceUYU} UYU
                     </span>
                     <span className="text-[#00A650] font-black text-lg font-mono">
-                      ¡GRATIS ($0)!
+                      {textDict.free}
                     </span>
                   </div>
                 </div>
@@ -180,7 +214,7 @@ export default function MysteryBox({
                     className="w-full py-3 px-6 border-2 border-black bg-black text-white hover:bg-neutral-800 font-extrabold uppercase text-xs tracking-wider shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]"
                     id="accept-gift-btn"
                   >
-                    Excelente, ¡Lo quiero! 💪
+                    {textDict.claimBtn}
                   </button>
                 </div>
               </motion.div>

@@ -23,6 +23,7 @@ import { INITIAL_PRODUCTS, CATEGORIES } from './data';
 import ProductCard from './components/ProductCard';
 import MysteryBox from './components/MysteryBox';
 import AdminPanel from './components/AdminPanel';
+import { translations, categoryTranslations } from './translations';
 
 export default function App() {
   // Catalog State - hydrated from localStorage or defaults
@@ -77,8 +78,18 @@ export default function App() {
   const [isMysteryBoxOpen, setIsMysteryBoxOpen] = useState(false);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [showFaq, setShowFaq] = useState(false);
+  const [lang, setLang] = useState<'es' | 'en'>(() => {
+    return (localStorage.getItem('garage_sale_lang') as 'es' | 'en') || 'es';
+  });
 
-  // Sync products, cart & gifts to localStorage
+  // Short hand translation helper
+  const t = translations[lang];
+
+  // Sync products, cart, gifts & lang to localStorage
+  useEffect(() => {
+    localStorage.setItem('garage_sale_lang', lang);
+  }, [lang]);
+
   useEffect(() => {
     localStorage.setItem('garage_sale_catalog', JSON.stringify(products));
   }, [products]);
@@ -130,7 +141,10 @@ export default function App() {
   };
 
   const handleQuickWhatsApp = (product: Product) => {
-    const greeting = `¡Hola Pablo! Me interesa ver o reservar este artículo de tu venta de garage de mudanza:\n\n👉 *${product.name}* (U$S ${product.priceUSD} / $${product.priceUYU} UYU)\n\n¿Es posible pasar a verlo? ¡Gracias!`;
+    const greeting = t.waGreetingSingle
+      .replace('{name}', product.name)
+      .replace('{priceUSD}', String(product.priceUSD))
+      .replace('{priceUYU}', String(product.priceUYU));
     const encoded = encodeURIComponent(greeting);
     window.open(`https://wa.me/${whatsappNumber}?text=${encoded}`, '_blank');
   };
@@ -150,10 +164,13 @@ export default function App() {
       .join('\n');
 
     if (wonGift) {
-      itemsText += `\n\n🎁 *REGALO DE CAJA SORPRESA GANADO:* ${wonGift.name} (Gratis con mi compra de artículo premium)`;
+      itemsText += `\n\n` + t.waGiftLine.replace('{name}', wonGift.name);
     }
 
-    const message = `¡Buenas Pablo! Vi tu sitio de mudanza Uruguay 🇺🇾 ➡️ Canadá 🇨🇦 y me interesa reservar lo siguiente:\n\n${itemsText}\n\n*Total estimado:* U$S ${totalUSD} / ~$${totalUYU} UYU\n\n¿Cuándo puedo pasar por Pocitos a retirarlo o coordinar? ¡Abrazo!`;
+    const message = t.waGreetingFull
+      .replace('{items}', itemsText)
+      .replace('{totalUSD}', String(totalUSD))
+      .replace('{totalUYU}', String(totalUYU));
     const encoded = encodeURIComponent(message);
     window.open(`https://wa.me/${whatsappNumber}?text=${encoded}`, '_blank');
   };
@@ -232,6 +249,24 @@ export default function App() {
       
       {/* HEADER SECTION WITH THE TRANSITION EMOTION */}
       <header className="relative bg-[#FFE600] border-b-4 border-black text-black overflow-hidden py-10 px-4">
+        {/* Language Switcher in the top right */}
+        <div className="absolute top-4 right-4 z-20 flex bg-white border-2 border-black p-1 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+          <button
+            onClick={() => setLang('es')}
+            className={`px-2 py-0.5 text-[10px] font-black uppercase tracking-tight transition-colors ${lang === 'es' ? 'bg-black text-white' : 'bg-white hover:bg-neutral-150 text-black'}`}
+            id="lang-es-btn"
+          >
+            ES
+          </button>
+          <button
+            onClick={() => setLang('en')}
+            className={`px-2 py-0.5 text-[10px] font-black uppercase tracking-tight transition-colors ${lang === 'en' ? 'bg-black text-white' : 'bg-white hover:bg-neutral-150 text-black'}`}
+            id="lang-en-btn"
+          >
+            EN
+          </button>
+        </div>
+
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6 relative z-10">
           <div>
             <div className="flex items-center gap-2 mb-3">
@@ -240,16 +275,16 @@ export default function App() {
                 <span className="absolute -top-1.5 left-4 text-xs">✈️</span>
               </div>
               <span className="text-xl">🇨🇦</span>
-              <span className="text-xs font-mono uppercase tracking-widest text-black bg-white px-3 py-1 font-bold border-2 border-black">
-                ¡Gran Liquidación de Mudanza!
+              <span className="text-xs font-mono uppercase tracking-widest text-black bg-white px-3 py-1 font-bold border-2 border-black p-1">
+                {t.badge}
               </span>
             </div>
 
             <h1 className="text-3xl md:text-5xl font-black font-display tracking-tight text-neutral-950 mb-2">
-              ¡Vendo todo por mudanza a Canadá!
+              {t.title}
             </h1>
             <p className="text-neutral-800 max-w-xl text-xs md:text-sm font-bold leading-relaxed">
-              Me estoy mudando de Montevideo a Canadá. Para no viajar con sobrepeso, vendo casi todos los artículos del hogar a precios increíbles. Los de puntuación baja se van como regalo o combo si llevas artículos premium. ¡Aprovechá antes de que parta el vuelo!
+              {t.desc}
             </p>
           </div>
 
@@ -263,11 +298,11 @@ export default function App() {
             >
               {viewMode === 'buyer' ? (
                 <>
-                  <Lock className="h-4 w-4" /> Administrar Catálogo (Dueño)
+                  <Lock className="h-4 w-4" /> {t.adminBtnOwner}
                 </>
               ) : (
                 <>
-                  Ver como Comprador
+                  {t.adminBtnBuyer}
                 </>
               )}
             </button>
@@ -277,7 +312,7 @@ export default function App() {
               className="px-4 py-3 border-2 border-black bg-white hover:bg-neutral-100 text-black font-extrabold text-xs transition-colors uppercase tracking-tight shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]"
               id="how-it-works-btn"
             >
-              ¿Cómo comprar/Funciona?
+              {t.howItWorks}
             </button>
           </div>
         </div>
@@ -297,30 +332,30 @@ export default function App() {
               <div className="space-y-1 p-3 border-2 border-neutral-800 bg-neutral-900">
                 <div className="flex items-center gap-2">
                   <span className="p-1 px-2.5 bg-[#3483FA] text-white border border-black font-mono text-xs font-black">1</span>
-                  <span className="font-extrabold text-sm uppercase tracking-tight">Explorás y elegís</span>
+                  <span className="font-extrabold text-sm uppercase tracking-tight">{t.step1Title}</span>
                 </div>
                 <p className="text-xs text-neutral-300 leading-relaxed pt-1">
-                  Agregás los artículos que te interesan. Podes filtrar por categorías, precios o puntuación de calidad.
+                  {t.step1Desc}
                 </p>
               </div>
 
               <div className="space-y-1 p-3 border-2 border-neutral-800 bg-neutral-900">
                 <div className="flex items-center gap-2">
                   <span className="p-1 px-2.5 bg-[#FFE600] text-black border border-black font-mono text-xs font-black">2</span>
-                  <span className="font-extrabold text-sm uppercase tracking-tight">¡Abrís la Caja Regalo! 🎁</span>
+                  <span className="font-extrabold text-sm uppercase tracking-tight">{t.step2Title}</span>
                 </div>
                 <p className="text-xs text-neutral-300 leading-relaxed pt-1">
-                  ¿Elegiste algún producto premium (Score 4 y 5)? ¡Te ganás un artículo chico totalmente gratis desde la ruleta!
+                  {t.step2Desc}
                 </p>
               </div>
 
               <div className="space-y-1 p-3 border-2 border-neutral-800 bg-neutral-900">
                 <div className="flex items-center gap-2">
                   <span className="p-1 px-2.5 bg-[#00A650] text-white border border-black font-mono text-xs font-black">3</span>
-                  <span className="font-extrabold text-sm uppercase tracking-tight">Coordinás por WA</span>
+                  <span className="font-extrabold text-sm uppercase tracking-tight">{t.step3Title}</span>
                 </div>
                 <p className="text-xs text-neutral-300 leading-relaxed pt-1">
-                  Hacés clic en "Coordinar". Te generará un borrador detallado listo para mandar a Pablo para retirar por Pocitos.
+                  {t.step3Desc}
                 </p>
               </div>
             </div>
@@ -349,7 +384,7 @@ export default function App() {
                   <Search className="absolute left-3 top-3 h-4.5 w-4.5 text-neutral-400" />
                   <input
                     type="text"
-                    placeholder="¿Qué estás buscando para tu casa?"
+                    placeholder={t.searchPlaceholder}
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     className="w-full pl-10 pr-4 py-2.5 bg-neutral-50 dark:bg-neutral-800 border-2 border-black dark:border-neutral-700 text-xs md:text-sm text-neutral-900 dark:text-white placeholder-neutral-400 focus:outline-none focus:bg-white"
@@ -363,7 +398,7 @@ export default function App() {
                   
                   {/* Category Filter Dropdown */}
                   <div className="flex items-center gap-1.5 bg-[#FFE600] text-black border-2 border-black px-3 py-1.5 text-xs font-black uppercase tracking-tight">
-                    <span>Categoría:</span>
+                    <span>{t.categoryLabel}</span>
                     <select
                       value={selectedCategory}
                       onChange={(e) => setSelectedCategory(e.target.value)}
@@ -371,7 +406,7 @@ export default function App() {
                     >
                       {CATEGORIES.map((cat) => (
                         <option key={cat} value={cat}>
-                          {cat}
+                          {categoryTranslations[lang][cat] || cat}
                         </option>
                       ))}
                     </select>
@@ -383,28 +418,28 @@ export default function App() {
                       onClick={() => setSelectedScoreFilter('all')}
                       className={`px-3 py-1.5 transition-all text-[11px] uppercase tracking-wider ${selectedScoreFilter === 'all' ? 'bg-black text-white dark:bg-neutral-700 font-black' : 'text-neutral-500 hover:text-neutral-800'}`}
                     >
-                      Todos
+                      {t.all}
                     </button>
                     <button
                       onClick={() => setSelectedScoreFilter('high')}
                       className={`px-3 py-1.5 transition-all flex items-center gap-0.5 text-[11px] uppercase tracking-wider ${selectedScoreFilter === 'high' ? 'bg-[#FFE600] text-black font-black border border-black' : 'text-neutral-500 hover:text-neutral-[#FFE600]'}`}
                       title="Productos premium de alto valor"
                     >
-                      Premium ⭐4-5
+                      {t.premiumOnly}
                     </button>
                     <button
                       onClick={() => setSelectedScoreFilter('medium')}
                       className={`px-3 py-1.5 transition-all text-[11px] uppercase tracking-wider ${selectedScoreFilter === 'medium' ? 'bg-neutral-300 text-black font-black border border-neutral-400' : 'text-neutral-500 hover:text-neutral-800'}`}
                       title="Artículos en buen estado general"
                     >
-                      Medios ⭐3
+                      {t.mediumOnly}
                     </button>
                     <button
                       onClick={() => setSelectedScoreFilter('free')}
                       className={`px-3 py-1.5 transition-all flex items-center gap-0.5 text-[11px] uppercase tracking-wider ${selectedScoreFilter === 'free' ? 'bg-purple-600 text-white font-black' : 'text-neutral-500 hover:text-neutral-800'}`}
                       title="Saldos, plantas, decorativos listos para regalar"
                     >
-                      Oportunidad 🎁
+                      {t.opportunityOnly}
                     </button>
                   </div>
 
@@ -420,15 +455,13 @@ export default function App() {
                     </div>
                     <div>
                       <h4 className="font-black text-neutral-900 text-lg uppercase tracking-tight">
-                        ¡Habilitaste tu tirada en la Caja Regalo! 🎉
+                        {t.alertPremiumTitle}
                       </h4>
                       <p className="text-neutral-900 font-bold text-xs md:text-sm mt-0.5">
                         {wonGift ? (
-                          <>
-                            Te ganaste un/a <strong>{wonGift.name}</strong> para tu combo de mudanza. ¡Felicidades!
-                          </>
+                          <span dangerouslySetInnerHTML={{ __html: t.alertPremiumDescWithGift.replace('{name}', `<strong>${wonGift.name}</strong>`) }} />
                         ) : (
-                          'Como seleccionaste un artículo de alta gama, tenés un regalo de la ruleta totalmente gratis.'
+                          t.alertPremiumDescNoGift
                         )}
                       </p>
                     </div>
@@ -440,18 +473,16 @@ export default function App() {
                     id="launch-drawer-mystery-box-btn"
                   >
                     {wonGift ? (
-                      <>Ver mi Regalo 🎁</>
+                      <>{t.viewMyGift}</>
                     ) : (
-                      <>Elegir mi Regalo Sorpresa 🎲</>
+                      <>{t.chooseMyGift}</>
                     )}
                   </button>
                 </div>
               ) : (
                 <div className="bg-white dark:bg-neutral-900 border-2 border-dashed border-black dark:border-neutral-700 p-5 text-xs text-neutral-800 dark:text-neutral-100 flex items-center gap-3">
                   <Info className="h-5 w-5 text-[#3483FA] flex-shrink-0" />
-                  <p className="font-bold">
-                    💡 <strong>Consejo del Mudador:</strong> Agrega cualquier artículo calificado como <strong>Premium ⭐4-5</strong> (por ejemplo: Heladera, Bicicleta GT, o Sofá de Living) para desbloquear automáticamente la <strong>Caja de Regalo de mudanza</strong> y llevarte uno de los artículos chicos totalmente gratis.
-                  </p>
+                  <p className="font-bold" dangerouslySetInnerHTML={{ __html: t.advisorTip }} />
                 </div>
               )}
 
@@ -461,7 +492,7 @@ export default function App() {
                   <div className="col-span-full text-center py-16 bg-white dark:bg-neutral-900 rounded-3xl border border-neutral-200 dark:border-neutral-800">
                     <Compass className="h-10 w-10 text-neutral-400 mx-auto mb-3" />
                     <p className="text-neutral-500 dark:text-neutral-400 font-medium text-sm">
-                      No encontramos ningún artículo con estos filtros o búsqueda.
+                      {t.noProductsFound}
                     </p>
                     <button
                       onClick={() => {
@@ -469,9 +500,9 @@ export default function App() {
                         setSelectedScoreFilter('all');
                         setSearchQuery('');
                       }}
-                      className="mt-3 px-4 py-2 bg-indigo-50 hover:bg-indigo-100 dark:bg-neutral-800 text-indigo-700 dark:text-white rounded-xl text-xs font-semibold"
+                      className="mt-3 px-4 py-2 bg-[#FFE600] text-black border-2 border-black font-extrabold text-xs uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
                     >
-                      Limpiar Filtros
+                      {t.clearFilters}
                     </button>
                   </div>
                 ) : (
@@ -482,6 +513,7 @@ export default function App() {
                       onAddToCart={handleAddToCart}
                       isInCart={cart.some((item) => item.product.id === product.id)}
                       onQuickWhatsApp={handleQuickWhatsApp}
+                      lang={lang}
                     />
                   ))
                 )}
@@ -500,15 +532,15 @@ export default function App() {
               <div className="flex items-center justify-between gap-4 border-b border-neutral-200 dark:border-neutral-800 pb-4">
                 <div>
                   <h2 className="text-2xl font-bold font-sans text-neutral-900 dark:text-white flex items-center gap-2">
-                    <Lock className="h-5 w-5 text-indigo-500" /> Panel del Propietario (Pablo)
+                    <Lock className="h-5 w-5 text-indigo-500" /> {t.panelTitle}
                   </h2>
                   <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-1">
-                    Configura tu número de WhatsApp receptor, modifica precios, añade fotos reales y marca artículos vendidos sobre la marcha.
+                    {t.panelDesc}
                   </p>
                 </div>
 
                 <div className="flex items-center gap-2 bg-indigo-50 dark:bg-indigo-950/20 px-4 py-2 rounded-xl border border-indigo-100 dark:border-indigo-900/30">
-                  <span className="text-[10px] font-mono text-indigo-600 dark:text-indigo-400 font-bold">Celular WhatsApp:</span>
+                  <span className="text-[10px] font-mono text-indigo-600 dark:text-indigo-400 font-bold">{t.whatsappLabel}</span>
                   <input
                     type="text"
                     value={whatsappNumber}
@@ -545,7 +577,7 @@ export default function App() {
           id="toggle-cart-drawer-float-btn"
         >
           <ShoppingCart className="h-6 w-6" />
-          <span className="font-bold text-xs pr-1 md:inline hidden">Mi Consulta</span>
+          <span className="font-bold text-xs pr-1 md:inline hidden">{t.myCart}</span>
           
           {cart.length > 0 && (
             <div className="absolute -top-1 -right-1 bg-rose-500 text-white font-mono text-xs font-black rounded-full h-5 w-5 flex items-center justify-center animate-bounce">
@@ -573,7 +605,7 @@ export default function App() {
                 <div className="p-6 border-b border-neutral-100 dark:border-neutral-800 flex items-center justify-between pb-4">
                   <div className="flex items-center gap-2">
                     <ShoppingCart className="h-5 w-5 text-indigo-500" />
-                    <h3 className="font-bold text-lg text-neutral-900 dark:text-white">Mi Lista de Interés</h3>
+                    <h3 className="font-bold text-lg text-neutral-900 dark:text-white">{t.cartTitle}</h3>
                   </div>
                   <button
                     onClick={() => setIsCartOpen(false)}
@@ -588,8 +620,8 @@ export default function App() {
                   {cart.length === 0 ? (
                     <div className="text-center py-16 text-neutral-400">
                       <ShoppingCart className="h-12 w-12 text-neutral-300 mx-auto mb-3" />
-                      <p className="text-sm font-semibold">Tu lista está vacía.</p>
-                      <p className="text-xs text-neutral-400 mt-1">Explora el garage sale y agrega cosas para reservar.</p>
+                      <p className="text-sm font-semibold">{t.cartEmptyTitle}</p>
+                      <p className="text-xs text-neutral-400 mt-1">{t.cartEmptyDesc}</p>
                     </div>
                   ) : (
                     <div className="space-y-4">
@@ -599,11 +631,11 @@ export default function App() {
                         <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-2xl flex items-center gap-3">
                           <Gift className="h-5 w-5 text-amber-500 flex-shrink-0 animate-bounce" />
                           <div className="flex-1 text-left">
-                            <span className="font-bold text-xs text-neutral-900 dark:text-amber-400 block">¡Tiro de Caja Disponible!</span>
+                            <span className="font-bold text-xs text-neutral-900 dark:text-amber-400 block">{t.giftAvailableTitle}</span>
                             <span className="text-[10px] text-neutral-500 dark:text-neutral-300">
                               {wonGift 
-                                ? `Ganaste: ${wonGift.name} (¡Incluído gratis!)`
-                                : 'Hacé click para tirar la tómbola.'}
+                                ? t.giftAvailableSubWinning.replace('{name}', wonGift.name)
+                                : t.giftAvailableSubDraw}
                             </span>
                           </div>
                           <button
@@ -611,15 +643,13 @@ export default function App() {
                             className="px-2 py-1 bg-amber-500 text-neutral-900 text-[10px] font-bold rounded-lg"
                             id="drawer-open-mystery-box-btn"
                           >
-                            {wonGift ? 'Detalle' : 'Abrir'}
+                            {wonGift ? t.giftDetail : t.giftOpen}
                           </button>
                         </div>
                       ) : (
                         <div className="p-3 bg-indigo-50 dark:bg-indigo-950/20 rounded-2xl border border-indigo-100 dark:border-indigo-900/35 flex items-start gap-2.5">
                           <AlertCircle className="h-4 w-4 text-indigo-500 flex-shrink-0 mt-0.5" />
-                          <p className="text-[10px] text-neutral-600 dark:text-indigo-300">
-                            <strong>¿Querés un regalo?</strong> Si agregás un producto de calidad <strong>Premium ⭐4-5</strong>, ¡se te habilita tirar en la Caja de Regalo!
-                          </p>
+                          <p className="text-[10px] text-neutral-600 dark:text-indigo-300" dangerouslySetInnerHTML={{ __html: t.giftInstruction }} />
                         </div>
                       )}
 
@@ -662,10 +692,14 @@ export default function App() {
                             />
                             <div className="flex-1 text-left">
                               <div className="flex items-center gap-1">
-                                <span className="bg-amber-500 text-[8px] font-bold text-neutral-900 px-1 py-0.2 rounded">Premio</span>
+                                <span className="bg-amber-500 text-[8px] font-bold text-neutral-900 px-1 py-0.2 rounded">
+                                  {lang === 'es' ? 'Premio' : 'Gift'}
+                                </span>
                                 <h4 className="font-bold text-xs text-neutral-900 dark:text-white line-clamp-1">{wonGift.name}</h4>
                               </div>
-                              <span className="text-[10px] text-neutral-400 block font-mono">Arreglado de mudanza</span>
+                              <span className="text-[10px] text-neutral-400 block font-mono">
+                                {lang === 'es' ? 'Arreglado de mudanza' : 'Moving bundle bonus'}
+                              </span>
                               <span className="text-emerald-500 text-xs font-bold font-mono">¡GRATIS ($0)!</span>
                             </div>
                             <button
@@ -686,11 +720,11 @@ export default function App() {
                 <div className="p-6 border-t border-neutral-100 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-800/20 space-y-4">
                   <div className="space-y-1.5 text-left">
                     <div className="flex justify-between items-baseline">
-                      <span className="text-xs text-neutral-400 font-medium">Suma Total (Dólares):</span>
+                      <span className="text-xs text-neutral-400 font-medium">{t.totalSum}</span>
                       <span className="text-xl font-bold font-mono text-neutral-950 dark:text-white">U$S {totalUSD}</span>
                     </div>
                     <div className="flex justify-between items-baseline">
-                      <span className="text-xs text-neutral-400 font-medium">Equivalente Estimado Pesos:</span>
+                      <span className="text-xs text-neutral-400 font-medium">{t.estimatedUYU}</span>
                       <span className="text-sm font-semibold font-mono text-neutral-500">${totalUYU} UYU</span>
                     </div>
                   </div>
@@ -701,11 +735,11 @@ export default function App() {
                     className="w-full py-3.5 px-4 bg-emerald-600 hover:bg-emerald-700 disabled:bg-neutral-300 disabled:cursor-not-allowed text-white font-bold rounded-2xl flex items-center justify-center gap-1.5 transition-colors text-xs md:text-sm uppercase tracking-wide"
                     id="submit-whatsapp-full-cart-btn"
                   >
-                    <MessageSquare className="h-4.5 w-4.5" /> Coordinar por WhatsApp
+                    <MessageSquare className="h-4.5 w-4.5" /> {t.coordinationCTA}
                   </button>
 
                   <p className="text-[10px] text-neutral-400 text-center">
-                    Los pagos se coordinan directo con Pablo (en mano / transferencia bancaria). Retiros en Pocitos, Montevideo.
+                    {t.coordinationDisclaimer}
                   </p>
                 </div>
 
@@ -724,6 +758,7 @@ export default function App() {
             onClose={() => setIsMysteryBoxOpen(false)}
             hasWon={!!wonGift}
             wonGiftProduct={wonGift}
+            lang={lang}
           />
         )}
       </AnimatePresence>
@@ -733,10 +768,10 @@ export default function App() {
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="text-center md:text-left">
             <div className="flex items-center justify-center md:justify-start gap-1 text-white font-extrabold mb-1">
-              <span>🇲🇺 Venta de Garage</span> • <span>Montevideo ➡️ Canadá 🍁</span>
+              <span>🇲🇺 {t.footerTitle}</span> • <span>{t.footerSubtitle} 🍁</span>
             </div>
             <p className="text-[11px] text-neutral-500">
-              Desarrollado para acelerar la rotación de inventarios domésticos. Retiros coordinados por Pocitos.
+              {t.footerDesc}
             </p>
           </div>
 
@@ -748,18 +783,18 @@ export default function App() {
               }}
               className="hover:text-white transition-colors"
             >
-              Control Dueño
+              {t.controlOwner}
             </button>
             <span>•</span>
             <button
               onClick={() => {
-                if (confirm('¿Restablecer datos originales del simulador? Se limpiará caché.')) {
+                if (confirm(lang === 'es' ? '¿Restablecer datos originales del simulador? Se limpiará caché.' : 'Reset raw simulator database? It will clear cache.')) {
                   handleResetCatalog();
                 }
               }}
               className="hover:text-white transition-colors"
             >
-              Caché por Defecto
+              {t.cacheDefault}
             </button>
           </div>
         </div>

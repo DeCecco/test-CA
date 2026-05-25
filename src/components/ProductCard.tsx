@@ -2,12 +2,14 @@ import React from 'react';
 import { motion } from 'motion/react';
 import { Sparkles, Star, Gift, Check, ArrowRight, MessageSquare } from 'lucide-react';
 import { Product } from '../types';
+import { categoryTranslations } from '../translations';
 
 interface ProductCardProps {
   product: Product;
   onAddToCart: (product: Product) => void;
   isInCart: boolean;
   onQuickWhatsApp: (product: Product) => void;
+  lang?: 'es' | 'en';
   key?: string;
 }
 
@@ -16,10 +18,46 @@ export default function ProductCard({
   onAddToCart,
   isInCart,
   onQuickWhatsApp,
+  lang = 'es',
 }: ProductCardProps) {
   const isPremium = product.score >= 4;
   const isSold = product.status === 'vendido';
   const isReserved = product.status === 'reservado';
+
+  const categoryName = categoryTranslations[lang]?.[product.category] || product.category;
+
+  const textDict = {
+    es: {
+      premium: 'PREMIUM',
+      gift: 'REGALO',
+      sold: '¡VENDIDO!',
+      soldDesc: 'Ya tiene dueño en Canadá',
+      reserved: 'RESERVADO',
+      reservedDesc: 'Preguntá si se libera',
+      clearancePrice: 'Precio de liquidación',
+      premiumPromo: '🎁 ¡Llevá este premium y tirá en la Caja de Regalos!',
+      standardPromo: '🪴 Ahorro: Elegible para sumarlo de regalo.',
+      inList: 'En lista',
+      addList: 'Llevar / Reservar',
+      outOfStock: 'Sin Stock',
+      quickWaTitle: 'Consultar por WhatsApp directamente',
+    },
+    en: {
+      premium: 'PREMIUM',
+      gift: 'FREE GIFT',
+      sold: 'SOLD!',
+      soldDesc: 'Already has an owner in Canada',
+      reserved: 'RESERVED',
+      reservedDesc: 'Ask if it becomes available',
+      clearancePrice: 'Clearance price',
+      premiumPromo: '🎁 Buy this premium item & spin the Gift Box!',
+      standardPromo: '🪴 Bargain: Eligible to get as a free gift.',
+      inList: 'In list',
+      addList: 'Claim / Reserve',
+      outOfStock: 'Out of Stock',
+      quickWaTitle: 'Inquire directly via WhatsApp',
+    }
+  }[lang];
 
   return (
     <motion.div
@@ -36,18 +74,18 @@ export default function ProductCard({
       {/* Dynamic badges on top corner of the image */}
       <div className="absolute top-3 left-3 z-10 flex flex-col gap-1.5 pointer-events-none">
         <span className="text-[10px] bg-black text-white px-2.5 py-1 rounded-none font-bold uppercase tracking-wider border border-black">
-          {product.category}
+          {categoryName}
         </span>
         
         {isPremium && (
           <span className="text-[10px] bg-[#FFE600] text-neutral-950 px-2.5 py-1 font-black flex items-center gap-1 border border-black uppercase tracking-tight animate-pulse">
-            <Sparkles className="h-3 w-3 fill-neutral-950" /> PREMIUM ⭐{product.score}
+            <Sparkles className="h-3 w-3 fill-neutral-950" /> {textDict.premium} ⭐{product.score}
           </span>
         )}
 
         {(product.isOfferBonus || product.score <= 2) && (
           <span className="text-[10px] bg-purple-600 text-white px-2.5 py-1 font-bold flex items-center gap-1 border border-black">
-            <Gift className="h-3 w-3" /> REGALO
+            <Gift className="h-3 w-3" /> {textDict.gift}
           </span>
         )}
       </div>
@@ -65,18 +103,18 @@ export default function ProductCard({
         {isSold && (
           <div className="absolute inset-0 bg-black/70 flex flex-col items-center justify-center p-4">
             <span className="px-5 py-2 bg-black text-rose-500 border-2 border-rose-500 font-extrabold tracking-widest text-[15px] uppercase shadow-[3px_3px_0px_0px_rgba(244,63,94,1)] rotate-[-8deg]">
-              ¡VENDIDO!
+              {textDict.sold}
             </span>
-            <p className="text-white text-[10px] mt-3 text-center font-bold font-mono tracking-tight bg-black/80 px-2 py-0.5">Ya tiene dueño en Canadá</p>
+            <p className="text-white text-[10px] mt-3 text-center font-bold font-mono tracking-tight bg-black/80 px-2 py-0.5">{textDict.soldDesc}</p>
           </div>
         )}
 
         {isReserved && (
           <div className="absolute inset-0 bg-neutral-900/60 flex flex-col items-center justify-center p-4">
             <span className="px-4 py-1.5 bg-amber-500 text-neutral-950 font-black tracking-widest text-[11px] uppercase border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
-              RESERVADO
+              {textDict.reserved}
             </span>
-            <p className="text-white text-[10px] mt-2 text-center font-mono font-bold bg-black/50 px-2 py-0.5">Preguntá si se libera</p>
+            <p className="text-white text-[10px] mt-2 text-center font-mono font-bold bg-black/50 px-2 py-0.5">{textDict.reservedDesc}</p>
           </div>
         )}
       </div>
@@ -108,10 +146,10 @@ export default function ProductCard({
           </p>
         </div>
 
-        {/* Price Tag with modern Uruguay display */}
+        {/* Price Tag with Uruguay display */}
         <div className="mt-3 pt-3 border-t border-neutral-200 dark:border-neutral-800 flex items-end justify-between">
           <div className="flex flex-col">
-            <span className="text-[9px] text-neutral-400 font-mono uppercase tracking-widest leading-none mb-1">Precio de liquidación</span>
+            <span className="text-[9px] text-neutral-400 font-mono uppercase tracking-widest leading-none mb-1">{textDict.clearancePrice}</span>
             <div className="flex items-baseline gap-1" id={`product-price-${product.id}`}>
               <span className="text-xl font-black text-neutral-900 dark:text-white font-mono">
                 U$S {product.priceUSD}
@@ -124,14 +162,14 @@ export default function ProductCard({
         </div>
 
         {/* Promo info banner on the card */}
-        <div className="mt-3">
+        <div className="mt-3 font-sans">
           {isPremium ? (
             <div className="bg-amber-100 dark:bg-amber-950/20 text-neutral-900 dark:text-amber-300 p-2 text-[10px] font-bold flex items-center gap-1 border border-black">
-              🎁 <span>¡Llevá este premium y tirá en la <strong>Caja de Regalos</strong>!</span>
+              {textDict.premiumPromo}
             </div>
           ) : (
             <div className="bg-gray-100 dark:bg-neutral-800/50 text-neutral-600 dark:text-neutral-400 p-2 text-[10px] font-bold border border-gray-300 dark:border-neutral-700">
-              🪴 <span><strong>Ahorro:</strong> Elegible para sumarlo de regalo.</span>
+              {textDict.standardPromo}
             </div>
           )}
         </div>
@@ -152,17 +190,17 @@ export default function ProductCard({
               >
                 {isInCart ? (
                   <span className="flex items-center justify-center gap-1 uppercase tracking-tight">
-                    <Check className="h-3.5 w-3.5 stroke-[3px]" /> En lista
+                    <Check className="h-3.5 w-3.5 stroke-[3px]" /> {textDict.inList}
                   </span>
                 ) : (
-                  <span className="uppercase tracking-tight">Llevar / Reservar</span>
+                  <span className="uppercase tracking-tight">{textDict.addList}</span>
                 )}
               </button>
 
               <button
                 onClick={() => onQuickWhatsApp(product)}
                 className="p-2 border border-black hover:bg-neutral-950 hover:text-[#FFE600] transition-colors"
-                title="Consultar por WhatsApp directamente"
+                title={textDict.quickWaTitle}
                 id={`quick-wa-btn-${product.id}`}
               >
                 <MessageSquare className="h-4 w-4" />
@@ -174,7 +212,7 @@ export default function ProductCard({
               className="w-full py-2 bg-neutral-100 dark:bg-neutral-800 text-neutral-400 border border-neutral-300 dark:border-neutral-700 text-xs font-bold uppercase cursor-not-allowed"
               id={`sold-btn-${product.id}`}
             >
-              Sin Stock
+              {textDict.outOfStock}
             </button>
           )}
         </div>

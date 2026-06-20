@@ -538,19 +538,6 @@ export default function App() {
                     {t.panelDesc}
                   </p>
                 </div>
-
-                <div className="flex items-center gap-2 bg-indigo-50 dark:bg-indigo-950/20 px-4 py-2 rounded-xl border border-indigo-100 dark:border-indigo-900/30">
-                  <span className="text-[10px] font-mono text-indigo-600 dark:text-indigo-400 font-bold">{t.whatsappLabel}</span>
-                  <input
-                    type="text"
-                    value={whatsappNumber}
-                    onChange={(e) => setWhatsappNumber(e.target.value)}
-                    className="w-32 bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 px-2 py-0.5 rounded text-xs font-mono font-semibold"
-                    placeholder="Ej. 59899123456"
-                    title="Ingresa tu celular sin símbolos. Ej: 59899123456"
-                    id="admin-wa-input"
-                  />
-                </div>
               </div>
 
               <AdminPanel
@@ -561,6 +548,8 @@ export default function App() {
                 onExportCatalog={handleExportCatalog}
                 onImportCatalog={handleImportCatalog}
                 onResetCatalog={handleResetCatalog}
+                whatsappNumber={whatsappNumber}
+                setWhatsappNumber={setWhatsappNumber}
               />
             </motion.div>
           )}

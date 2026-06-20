@@ -45,6 +45,8 @@ interface AdminPanelProps {
   onExportCatalog: () => void;
   onImportCatalog: (imported: Product[]) => void;
   onResetCatalog: () => void;
+  whatsappNumber: string;
+  setWhatsappNumber: (num: string) => void;
 }
 
 export default function AdminPanel({
@@ -55,6 +57,8 @@ export default function AdminPanel({
   onExportCatalog,
   onImportCatalog,
   onResetCatalog,
+  whatsappNumber,
+  setWhatsappNumber,
 }: AdminPanelProps) {
   // Security States
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -62,8 +66,10 @@ export default function AdminPanel({
   const [authError, setAuthError] = useState('');
 
   // 2FA Login States
-  const [loginStep, setLoginStep] = useState<'password' | '2fa'>('password');
+  const [loginStep, setLoginStep] = useState<'password' | '2fa' | 'recovery'>('password');
   const [totpCode, setTotpCode] = useState('');
+  const [recoveryPhone, setRecoveryPhone] = useState('');
+  const [recoveryError, setRecoveryError] = useState('');
 
   // Navigation tabs in panel
   const [activeTab, setActiveTab] = useState<'catalog' | 'security'>('catalog');
@@ -330,6 +336,20 @@ export default function AdminPanel({
                     className="w-full px-4 py-3 bg-neutral-50 dark:bg-neutral-800 border-2 border-black rounded-xl text-neutral-900 dark:text-white focus:ring-2 focus:ring-indigo-500 text-sm font-mono"
                     id="admin-pass-input"
                   />
+                  <div className="text-right mt-2 mr-1">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setLoginStep('recovery');
+                        setAuthError('');
+                        setRecoveryPhone('');
+                        setRecoveryError('');
+                      }}
+                      className="text-[11px] text-indigo-600 dark:text-indigo-400 font-extrabold hover:underline"
+                    >
+                      ¿Problemas para ingresar o clave olvidada?
+                    </button>
+                  </div>
                 </div>
 
                 {authError && (
@@ -345,7 +365,7 @@ export default function AdminPanel({
                 </button>
               </form>
             </>
-          ) : (
+          ) : loginStep === '2fa' ? (
             <>
               <div className="p-3 bg-amber-100 dark:bg-amber-950/40 border border-black rounded-full text-amber-600 dark:text-amber-400 mb-4 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] animate-bounce">
                 <Smartphone className="h-8 w-8" />
@@ -373,6 +393,20 @@ export default function AdminPanel({
                     id="admin-totp-input"
                     autoFocus
                   />
+                  <div className="text-right mt-2 mr-1">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setLoginStep('recovery');
+                        setAuthError('');
+                        setRecoveryPhone('');
+                        setRecoveryError('');
+                      }}
+                      className="text-[11px] text-amber-600 dark:text-amber-400 font-extrabold hover:underline"
+                    >
+                      ¿Perdiste acceso al dispositivo 2FA?
+                    </button>
+                  </div>
                 </div>
 
                 {authError && (
@@ -400,6 +434,106 @@ export default function AdminPanel({
                   </button>
                 </div>
               </form>
+            </>
+          ) : (
+            <>
+              <div className="p-3 bg-rose-100 dark:bg-rose-950/40 border border-black rounded-full text-rose-600 dark:text-rose-400 mb-4 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+                <ShieldAlert className="h-8 w-8" />
+              </div>
+              <h2 className="text-2xl font-black font-sans tracking-tight text-neutral-900 dark:text-white mb-2 uppercase">
+                Restablecer Acceso
+              </h2>
+              <p className="text-xs text-neutral-500 dark:text-neutral-400 mb-6 font-bold leading-relaxed">
+                Si olvidaste tu clave o perdiste el acceso al sistema 2FA, podés restablecer la contraseña a la original ingresando el número de WhatsApp configurado actualmente.
+              </p>
+
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  setRecoveryError('');
+
+                  const entered = recoveryPhone.replace(/[^0-9]/g, '');
+                  const savedUnformatted = localStorage.getItem('garage_sale_wa_num') || '59899123456';
+                  const savedWa = savedUnformatted.replace(/[^0-9]/g, '');
+
+                  if (!entered) {
+                    setRecoveryError('Ingresá un número de WhatsApp de contacto válido.');
+                    return;
+                  }
+
+                  if (entered === savedWa) {
+                    localStorage.removeItem('admin_pwd');
+                    localStorage.removeItem('admin_2fa_enabled');
+                    localStorage.removeItem('admin_2fa_secret');
+                    localStorage.removeItem('admin_backup_codes');
+                    alert('¡Acceso Restablecido con Éxito!\n\nLa contraseña volvió a ser "canada2026" y el Doble Factor (2FA) ha sido desactivado.');
+                    
+                    setPassword('');
+                    setLoginStep('password');
+                    setRecoveryPhone('');
+                    setRecoveryError('');
+                  } else {
+                    setRecoveryError('El número ingresado no coincide con el WhatsApp configurado en tu tienda.');
+                  }
+                }}
+                className="w-full space-y-4 text-left"
+              >
+                <div>
+                  <label className="block text-xs font-semibold text-neutral-400 uppercase tracking-wider mb-1">
+                    Número de WhatsApp de la Tienda
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="Ej. 59899123456"
+                    value={recoveryPhone}
+                    onChange={(e) => setRecoveryPhone(e.target.value)}
+                    className="w-full px-4 py-3 bg-neutral-50 dark:bg-neutral-800 border-2 border-black rounded-xl text-neutral-900 dark:text-white focus:ring-2 focus:ring-indigo-500 text-sm font-mono font-bold"
+                    id="admin-recovery-phone-input"
+                  />
+                  <p className="text-[10px] text-neutral-400 mt-1 font-bold leading-relaxed">
+                    Pista: Es el número celular donde recibís las compras. Por defecto es 59899123456.
+                  </p>
+                </div>
+
+                {recoveryError && (
+                  <p className="text-xs font-bold text-rose-500">{recoveryError}</p>
+                )}
+
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setLoginStep('password');
+                      setRecoveryPhone('');
+                      setRecoveryError('');
+                    }}
+                    className="flex-1 py-3 bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 border-2 border-black rounded-xl font-bold transition-all text-xs text-neutral-700 dark:text-neutral-300 uppercase"
+                  >
+                    Atrás
+                  </button>
+                  <button
+                    type="submit"
+                    className="flex-[2] py-3 bg-rose-500 hover:bg-rose-600 text-white border-2 border-black rounded-xl font-black transition-all shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] flex items-center justify-center gap-1.5 uppercase tracking-wide text-xs cursor-pointer"
+                  >
+                    <Check className="h-4 w-4" /> Validar y Restablecer
+                  </button>
+                </div>
+              </form>
+
+              {/* Developer Bypass Console tool */}
+              <div className="mt-6 pt-5 border-t border-dashed border-neutral-350 dark:border-neutral-800 w-full text-left">
+                <span className="text-[10px] font-black text-rose-600 dark:text-rose-450 uppercase tracking-widest block mb-1">💻 Bypass Físico de Consola (100% Infalible)</span>
+                <p className="text-[11px] text-neutral-500 dark:text-neutral-400 leading-relaxed mb-3 font-medium">
+                  Al tratarse de una base segura local, podés restablecer todo directamente en tu navegador actual abriendo la Consola de Desarrolladores y pegando lo siguiente:
+                </p>
+                <div className="bg-neutral-50 dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-850 p-2.5 rounded-xl font-mono text-[10px] text-neutral-800 dark:text-neutral-300 select-all font-bold">
+                  localStorage.removeItem('admin_pwd'); localStorage.removeItem('admin_2fa_enabled'); location.reload();
+                </div>
+                <div className="mt-2 text-[10px] text-neutral-400 dark:text-neutral-500 font-semibold leading-relaxed">
+                  Pistas: Clic derecho {"->"} <span className="font-bold">Inspeccionar</span> {"->"} pestaña <span className="font-bold">Consola</span> {"->"} pegar código {"->"} presionar <span className="font-bold">Enter</span>.
+                </div>
+              </div>
             </>
           )}
         </div>
@@ -441,12 +575,29 @@ export default function AdminPanel({
           </button>
         </div>
 
-        <button
-          onClick={handleLogout}
-          className="px-4 py-2 bg-rose-50 dark:bg-rose-950/10 text-rose-600 hover:bg-rose-105 hover:text-rose-700 dark:hover:bg-rose-900/30 border-2 border-rose-500 font-extrabold text-xs flex items-center gap-1.5 uppercase transition-all shadow-[2px_2px_0px_0px_rgba(244,63,94,1)] active:translate-x-0.5 active:translate-y-0.5"
-        >
-          <LogOut className="h-4 w-4 stroke-[2.5px]" /> Cerrar Sesión
-        </button>
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="flex items-center gap-2 bg-indigo-50 dark:bg-indigo-950/25 px-3 py-1.5 rounded-xl border border-indigo-100 dark:border-indigo-900/40">
+            <span className="text-[10px] font-mono text-indigo-600 dark:text-indigo-400 font-extrabold uppercase tracking-wider">
+              WhatsApp Recibe Ventas:
+            </span>
+            <input
+              type="text"
+              value={whatsappNumber}
+              onChange={(e) => setWhatsappNumber(e.target.value)}
+              className="w-32 bg-white dark:bg-neutral-800 border-2 border-black dark:border-neutral-700 px-2 py-0.5 rounded-lg text-xs font-mono font-bold text-neutral-900 dark:text-white focus:ring-1 focus:ring-indigo-500"
+              placeholder="Ej. 59899123456"
+              title="Ingresa tu celular sin símbolos ni espacios. Ej: 59899123456"
+              id="admin-secure-wa-input"
+            />
+          </div>
+
+          <button
+            onClick={handleLogout}
+            className="px-4 py-2 bg-rose-50 dark:bg-rose-950/10 text-rose-600 hover:bg-rose-105 hover:text-rose-700 dark:hover:bg-rose-900/30 border-2 border-rose-500 font-extrabold text-xs flex items-center gap-1.5 uppercase transition-all shadow-[2px_2px_0px_0px_rgba(244,63,94,1)] active:translate-x-0.5 active:translate-y-0.5 cursor-pointer"
+          >
+            <LogOut className="h-4 w-4 stroke-[2.5px]" /> Cerrar Sesión
+          </button>
+        </div>
       </div>
 
       {activeTab === 'catalog' ? (

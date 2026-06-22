@@ -156,6 +156,15 @@ export default function ProductCard({
             : 'shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] dark:shadow-[4px_4px_0px_0px_rgba(255,255,255,0.1)]'
         } transition-all duration-300`}
       >
+        {/* ribbon for offer banner */}
+        {product.showOfferBanner && (
+          <div className="absolute top-0 right-0 w-24 h-24 overflow-hidden pointer-events-none z-20">
+            <div className="absolute top-4 -right-8 w-28 bg-red-600 dark:bg-rose-600 text-white font-black text-[9px] tracking-widest text-center py-1.5 rotate-45 border-y border-black uppercase shadow-lg">
+              {lang === 'es' ? 'OFERTA' : 'OFFER'}
+            </div>
+          </div>
+        )}
+
         {/* Dynamic badges on top corner of the image */}
         <div className="absolute top-3 left-3 z-10 flex flex-col gap-1.5 pointer-events-none">
           <span className="text-[10px] bg-black text-white px-2.5 py-1 rounded-none font-bold uppercase tracking-wider border border-black">
@@ -182,7 +191,7 @@ export default function ProductCard({
               e.stopPropagation();
               setLightboxImage(activeItem.url);
             }}
-            className="absolute top-3 right-3 z-30 p-1.5 bg-black/80 hover:bg-[#FFE600] text-white hover:text-black border border-black shadow-[1.5px_1.5px_0px_0px_rgba(0,0,0,1)] select-none transition-colors"
+            className={`absolute ${product.showOfferBanner ? 'top-12' : 'top-3'} right-3 z-30 p-1.5 bg-black/80 hover:bg-[#FFE600] text-white hover:text-black border border-black shadow-[1.5px_1.5px_0px_0px_rgba(0,0,0,1)] select-none transition-colors`}
             title={lang === 'es' ? 'Ampliar imagen' : 'Enlarge image'}
           >
             <Maximize2 className="h-3.5 w-3.5" />

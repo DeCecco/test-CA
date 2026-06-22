@@ -51,6 +51,7 @@ export const translations = {
     waGreetingSingle: "¡Hola Pablo! Me interesa ver o reservar este artículo de tu venta de garage de mudanza:\n\n👉 *{name}* (U$S {priceUSD} / ${priceUYU} UYU)\n\n¿Es posible pasar a verlo? ¡Gracias!",
     waGreetingFull: "¡Buenas Pablo! Vi tu sitio de mudanza Uruguay 🇺🇾 ➡️ Canadá 🇨🇦 y me interesa reservar lo siguiente:\n\n{items}\n\n*Total estimado:* U$S {totalUSD} / ~${totalUYU} UYU\n\n¿Cuándo puedo pasar por Pocitos a retirarlo o coordinar? ¡Abrazo!",
     waGiftLine: "🎁 *REGALO DE CAJA SORPRESA GANADO:* {name} (Gratis con mi compra de artículo premium)",
+    offerRibbon: "OFERTA",
   },
   en: {
     badge: "Big Moving Sale!",
@@ -104,6 +105,7 @@ export const translations = {
     waGreetingSingle: "Hello Pablo! I am interested in seeing or reserving this item from your moving garage sale:\n\n👉 *{name}* (USD {priceUSD} / ${priceUYU} UYU)\n\nIs it possible to stop by and check it out? Thanks!",
     waGreetingFull: "Hi Pablo! I saw your Uruguay 🇺🇾 ➡️ Canada 🇨🇦 moving sale site and I am interested in reserving the following:\n\n{items}\n\n*Estimated Total:* USD {totalUSD} / ~${totalUYU} UYU\n\nWhen can I stop by Pocitos to collect it or coordinate? Best regards!",
     waGiftLine: "🎁 *WON SURPRISE BOX GIFT:* {name} (Free with my purchase of a premium item)",
+    offerRibbon: "OFFER",
   }
 };
 

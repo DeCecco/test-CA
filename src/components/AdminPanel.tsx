@@ -48,6 +48,8 @@ interface AdminPanelProps {
   onResetCatalog: () => void;
   whatsappNumber: string;
   setWhatsappNumber: (num: string) => void;
+  raffleEnabled: boolean;
+  setRaffleEnabled: (enabled: boolean) => void;
 }
 
 export default function AdminPanel({
@@ -60,6 +62,8 @@ export default function AdminPanel({
   onResetCatalog,
   whatsappNumber,
   setWhatsappNumber,
+  raffleEnabled,
+  setRaffleEnabled,
 }: AdminPanelProps) {
   // Security States
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -105,6 +109,7 @@ export default function AdminPanel({
   const [videoUrlInput, setVideoUrlInput] = useState('');
   const [raffleWeight, setRaffleWeight] = useState<string>('100');
   const [newIsVisible, setNewIsVisible] = useState(true);
+  const [newShowOfferBanner, setNewShowOfferBanner] = useState(false);
 
   // Search in Admin
   const [apiSearch, setApiSearch] = useState('');
@@ -205,6 +210,7 @@ export default function AdminPanel({
     setVideoUrlInput('');
     setIsOfferBonus(false);
     setNewIsVisible(true);
+    setNewShowOfferBanner(false);
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
@@ -241,7 +247,8 @@ export default function AdminPanel({
         videoUrl: videoUrlInput.trim() || undefined,
         isOfferBonus: isOfferBonus || newScore <= 2,
         raffleWeight: parseInt(raffleWeight, 10) || 100,
-        isVisible: newIsVisible
+        isVisible: newIsVisible,
+        showOfferBanner: newShowOfferBanner
       };
       onUpdateProduct(updatedProduct);
       setEditingProduct(null);
@@ -260,7 +267,8 @@ export default function AdminPanel({
         status: 'disponible',
         isOfferBonus: isOfferBonus || newScore <= 2,
         raffleWeight: parseInt(raffleWeight, 10) || 100,
-        isVisible: newIsVisible
+        isVisible: newIsVisible,
+        showOfferBanner: newShowOfferBanner
       };
       onAddProduct(newProduct);
     }
@@ -278,6 +286,7 @@ export default function AdminPanel({
     setIsOfferBonus(false);
     setRaffleWeight('100');
     setNewIsVisible(true);
+    setNewShowOfferBanner(false);
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
@@ -582,6 +591,23 @@ export default function AdminPanel({
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
+          <div className="flex items-center gap-2 bg-amber-50 dark:bg-amber-950/20 px-3 py-1.5 rounded-xl border border-amber-100 dark:border-amber-900/40">
+            <span className="text-[10px] font-mono text-amber-600 dark:text-amber-400 font-extrabold uppercase tracking-wider">
+              Sorteo de Caja Regalo:
+            </span>
+            <button
+              onClick={() => setRaffleEnabled(!raffleEnabled)}
+              type="button"
+              className={`px-2.5 py-0.5 rounded-lg text-xs font-black transition-all border cursor-pointer ${
+                raffleEnabled
+                  ? 'bg-amber-500 text-black border-black shadow-[1.5px_1.5px_0px_0px_rgba(0,0,0,1)]'
+                  : 'bg-neutral-100 dark:bg-neutral-800 text-neutral-500 border-neutral-300 dark:border-neutral-700'
+              }`}
+            >
+              {raffleEnabled ? 'HABILITADO 🎁' : 'DESHABILITADO 🚫'}
+            </button>
+          </div>
+
           <div className="flex items-center gap-2 bg-indigo-50 dark:bg-indigo-950/25 px-3 py-1.5 rounded-xl border border-indigo-100 dark:border-indigo-900/40">
             <span className="text-[10px] font-mono text-indigo-600 dark:text-indigo-400 font-extrabold uppercase tracking-wider">
               WhatsApp Recibe Ventas:
@@ -899,6 +925,19 @@ export default function AdminPanel({
               </label>
             </div>
 
+            <div className="flex items-center gap-2 pb-2">
+              <input
+                type="checkbox"
+                id="newShowOfferBannerCheckbox"
+                checked={newShowOfferBanner}
+                onChange={(e) => setNewShowOfferBanner(e.target.checked)}
+                className="rounded border-neutral-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+              />
+              <label htmlFor="newShowOfferBannerCheckbox" className="text-xs text-neutral-600 dark:text-neutral-400 font-bold flex items-center gap-1.5 cursor-pointer">
+                🏷️ Mostrar cinta roja de "OFERTA / OFFER" sobre el artículo
+              </label>
+            </div>
+
             {/* Raffle Weight Input */}
             <div className="p-4 bg-neutral-50 dark:bg-neutral-850 border border-neutral-250 dark:border-neutral-800 rounded-xl space-y-3">
               <div>
@@ -1034,6 +1073,7 @@ export default function AdminPanel({
                   <th className="py-3 px-2">Categoría / Est.</th>
                   <th className="py-3 px-2">Precios (USD / UYU)</th>
                   <th className="py-3 px-2">Peticiones</th>
+                  <th className="py-3 px-2">Cinta Oferta</th>
                   <th className="py-3 px-2">Visibilidad</th>
                   <th className="py-3 px-2 text-right">Acción</th>
                 </tr>
@@ -1041,7 +1081,7 @@ export default function AdminPanel({
               <tbody className="divide-y divide-neutral-100 dark:divide-neutral-800">
                 {filteredProducts.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="py-8 text-center text-neutral-500 italic">
+                    <td colSpan={7} className="py-8 text-center text-neutral-500 italic">
                       No se encontraron artículos que coincidan.
                     </td>
                   </tr>
@@ -1163,6 +1203,26 @@ export default function AdminPanel({
                         )}
                       </td>
 
+                      {/* Ribbon Banner Offer Toggle */}
+                      <td className="py-3 px-2">
+                        <button
+                          onClick={() => {
+                            onUpdateProduct({
+                              ...product,
+                              showOfferBanner: !product.showOfferBanner
+                            });
+                          }}
+                          className={`px-2 py-1 rounded-lg text-[10px] font-black flex items-center gap-1 transition-all border cursor-pointer ${
+                            product.showOfferBanner
+                              ? 'bg-rose-500 text-white border-black shadow-[1.5px_1.5px_0px_0px_rgba(0,0,0,1)]'
+                              : 'bg-neutral-100 dark:bg-neutral-800 text-neutral-500 dark:text-neutral-400 border-neutral-200 dark:border-neutral-700 hover:border-black'
+                          }`}
+                          title={product.showOfferBanner ? "Hacer normal (quitar cinta de oferta)" : "Hacer oferta (mostrar cinta de oferta)"}
+                        >
+                          {product.showOfferBanner ? 'Sí (OFERTA) 🏷️' : 'No'}
+                        </button>
+                      </td>
+
                       {/* Visibility Toggle */}
                       <td className="py-3 px-2">
                         <button
@@ -1210,6 +1270,7 @@ export default function AdminPanel({
                             setVideoUrlInput(product.videoUrl || '');
                             setRaffleWeight(product.raffleWeight !== undefined ? product.raffleWeight.toString() : '100');
                             setNewIsVisible(product.isVisible !== false);
+                            setNewShowOfferBanner(!!product.showOfferBanner);
                             
                             // Scroll up smoothly to the form
                             window.scrollTo({ top: 350, behavior: 'smooth' });

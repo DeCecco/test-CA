@@ -82,6 +82,11 @@ export default function App() {
     return (localStorage.getItem('garage_sale_lang') as 'es' | 'en') || 'es';
   });
 
+  const [raffleEnabled, setRaffleEnabled] = useState<boolean>(() => {
+    const saved = localStorage.getItem('garage_sale_raffle_enabled');
+    return saved !== 'false';
+  });
+
   // Short hand translation helper
   const t = translations[lang];
 
@@ -105,6 +110,10 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem('garage_sale_wa_num', whatsappNumber);
   }, [whatsappNumber]);
+
+  useEffect(() => {
+    localStorage.setItem('garage_sale_raffle_enabled', String(raffleEnabled));
+  }, [raffleEnabled]);
 
   // Derived Values
   const availableLowScoreGifts = products.filter(
@@ -163,7 +172,7 @@ export default function App() {
       )
       .join('\n');
 
-    if (wonGift) {
+    if (raffleEnabled && wonGift) {
       itemsText += `\n\n` + t.waGiftLine.replace('{name}', wonGift.name);
     }
 
@@ -452,43 +461,45 @@ export default function App() {
               </div>
 
               {/* DYNAMIC ALERT BANNER REGARDING EXTRA GIFT */}
-              {cartHasPremiumItem ? (
-                <div className="bg-[#FFE600] border-2 border-black text-black p-6 flex flex-col md:flex-row items-center justify-between gap-4 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
-                  <div className="flex items-center gap-4 text-center md:text-left">
-                    <div className="p-4 bg-black text-white border-2 border-white rounded-none animate-bounce">
-                      <Gift className="h-7 w-7" />
+              {raffleEnabled && (
+                cartHasPremiumItem ? (
+                  <div className="bg-[#FFE600] border-2 border-black text-black p-6 flex flex-col md:flex-row items-center justify-between gap-4 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+                    <div className="flex items-center gap-4 text-center md:text-left">
+                      <div className="p-4 bg-black text-white border-2 border-white rounded-none animate-bounce">
+                        <Gift className="h-7 w-7" />
+                      </div>
+                      <div>
+                        <h4 className="font-black text-neutral-900 text-lg uppercase tracking-tight">
+                          {t.alertPremiumTitle}
+                        </h4>
+                        <p className="text-neutral-900 font-bold text-xs md:text-sm mt-0.5">
+                          {wonGift ? (
+                            <span dangerouslySetInnerHTML={{ __html: t.alertPremiumDescWithGift.replace('{name}', `<strong>${wonGift.name}</strong>`) }} />
+                          ) : (
+                            t.alertPremiumDescNoGift
+                          )}
+                        </p>
+                      </div>
                     </div>
-                    <div>
-                      <h4 className="font-black text-neutral-900 text-lg uppercase tracking-tight">
-                        {t.alertPremiumTitle}
-                      </h4>
-                      <p className="text-neutral-900 font-bold text-xs md:text-sm mt-0.5">
-                        {wonGift ? (
-                          <span dangerouslySetInnerHTML={{ __html: t.alertPremiumDescWithGift.replace('{name}', `<strong>${wonGift.name}</strong>`) }} />
-                        ) : (
-                          t.alertPremiumDescNoGift
-                        )}
-                      </p>
-                    </div>
-                  </div>
 
-                  <button
-                    onClick={() => setIsMysteryBoxOpen(true)}
-                    className="w-full md:w-auto px-6 py-3 border-2 border-black bg-black text-white hover:bg-neutral-850 font-black tracking-widest text-xs uppercase flex items-center justify-center gap-2 transition-transform active:translate-x-0.5"
-                    id="launch-drawer-mystery-box-btn"
-                  >
-                    {wonGift ? (
-                      <>{t.viewMyGift}</>
-                    ) : (
-                      <>{t.chooseMyGift}</>
-                    )}
-                  </button>
-                </div>
-              ) : (
-                <div className="bg-white dark:bg-neutral-900 border-2 border-dashed border-black dark:border-neutral-700 p-5 text-xs text-neutral-800 dark:text-neutral-100 flex items-center gap-3">
-                  <Info className="h-5 w-5 text-[#3483FA] flex-shrink-0" />
-                  <p className="font-bold" dangerouslySetInnerHTML={{ __html: t.advisorTip }} />
-                </div>
+                    <button
+                      onClick={() => setIsMysteryBoxOpen(true)}
+                      className="w-full md:w-auto px-6 py-3 border-2 border-black bg-black text-white hover:bg-neutral-850 font-black tracking-widest text-xs uppercase flex items-center justify-center gap-2 transition-transform active:translate-x-0.5"
+                      id="launch-drawer-mystery-box-btn"
+                    >
+                      {wonGift ? (
+                        <>{t.viewMyGift}</>
+                      ) : (
+                        <>{t.chooseMyGift}</>
+                      )}
+                    </button>
+                  </div>
+                ) : (
+                  <div className="bg-white dark:bg-neutral-900 border-2 border-dashed border-black dark:border-neutral-700 p-5 text-xs text-neutral-800 dark:text-neutral-100 flex items-center gap-3">
+                    <Info className="h-5 w-5 text-[#3483FA] flex-shrink-0" />
+                    <p className="font-bold" dangerouslySetInnerHTML={{ __html: t.advisorTip }} />
+                  </div>
+                )
               )}
 
               {/* GRID OF CATALOGUE ARTICLES */}
@@ -555,6 +566,8 @@ export default function App() {
                 onResetCatalog={handleResetCatalog}
                 whatsappNumber={whatsappNumber}
                 setWhatsappNumber={setWhatsappNumber}
+                raffleEnabled={raffleEnabled}
+                setRaffleEnabled={setRaffleEnabled}
               />
             </motion.div>
           )}
@@ -621,30 +634,32 @@ export default function App() {
                     <div className="space-y-4">
                       
                       {/* Premium activation mini box */}
-                      {cartHasPremiumItem ? (
-                        <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-2xl flex items-center gap-3">
-                          <Gift className="h-5 w-5 text-amber-500 flex-shrink-0 animate-bounce" />
-                          <div className="flex-1 text-left">
-                            <span className="font-bold text-xs text-neutral-900 dark:text-amber-400 block">{t.giftAvailableTitle}</span>
-                            <span className="text-[10px] text-neutral-500 dark:text-neutral-300">
-                              {wonGift 
-                                ? t.giftAvailableSubWinning.replace('{name}', wonGift.name)
-                                : t.giftAvailableSubDraw}
-                            </span>
+                      {raffleEnabled && (
+                        cartHasPremiumItem ? (
+                          <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-2xl flex items-center gap-3">
+                            <Gift className="h-5 w-5 text-amber-500 flex-shrink-0 animate-bounce" />
+                            <div className="flex-1 text-left">
+                              <span className="font-bold text-xs text-neutral-900 dark:text-amber-400 block">{t.giftAvailableTitle}</span>
+                              <span className="text-[10px] text-neutral-500 dark:text-neutral-300">
+                                {wonGift 
+                                  ? t.giftAvailableSubWinning.replace('{name}', wonGift.name)
+                                  : t.giftAvailableSubDraw}
+                              </span>
+                            </div>
+                            <button
+                              onClick={() => setIsMysteryBoxOpen(true)}
+                              className="px-2 py-1 bg-amber-500 text-neutral-900 text-[10px] font-bold rounded-lg"
+                              id="drawer-open-mystery-box-btn"
+                            >
+                              {wonGift ? t.giftDetail : t.giftOpen}
+                            </button>
                           </div>
-                          <button
-                            onClick={() => setIsMysteryBoxOpen(true)}
-                            className="px-2 py-1 bg-amber-500 text-neutral-900 text-[10px] font-bold rounded-lg"
-                            id="drawer-open-mystery-box-btn"
-                          >
-                            {wonGift ? t.giftDetail : t.giftOpen}
-                          </button>
-                        </div>
-                      ) : (
-                        <div className="p-3 bg-indigo-50 dark:bg-indigo-950/20 rounded-2xl border border-indigo-100 dark:border-indigo-900/35 flex items-start gap-2.5">
-                          <AlertCircle className="h-4 w-4 text-indigo-500 flex-shrink-0 mt-0.5" />
-                          <p className="text-[10px] text-neutral-600 dark:text-indigo-300" dangerouslySetInnerHTML={{ __html: t.giftInstruction }} />
-                        </div>
+                        ) : (
+                          <div className="p-3 bg-indigo-50 dark:bg-indigo-950/20 rounded-2xl border border-indigo-100 dark:border-indigo-900/35 flex items-start gap-2.5">
+                            <AlertCircle className="h-4 w-4 text-indigo-500 flex-shrink-0 mt-0.5" />
+                            <p className="text-[10px] text-neutral-600 dark:text-indigo-300" dangerouslySetInnerHTML={{ __html: t.giftInstruction }} />
+                          </div>
+                        )
                       )}
 
                       {/* Items loop */}

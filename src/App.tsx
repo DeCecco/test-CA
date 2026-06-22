@@ -108,7 +108,7 @@ export default function App() {
 
   // Derived Values
   const availableLowScoreGifts = products.filter(
-    (p) => (p.isOfferBonus || p.score <= 2) && p.status === 'disponible'
+    (p) => (p.isOfferBonus || p.score <= 2) && p.status === 'disponible' && p.isVisible !== false
   );
 
   const cartHasPremiumItem = cart.some((item) => item.product.score >= 4 && item.product.status === 'disponible');
@@ -225,6 +225,11 @@ export default function App() {
 
   // Filter Catalog
   const filteredProducts = products.filter((p) => {
+    // Only visible products for buyers
+    if (p.isVisible === false) {
+      return false;
+    }
+
     // Category match
     if (selectedCategory !== 'Todos' && p.category !== selectedCategory) {
       return false;

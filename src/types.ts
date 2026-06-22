@@ -14,6 +14,7 @@ export interface Product {
   status: ProductStatus;
   isOfferBonus?: boolean; // Can be claimed or won as gift
   raffleWeight?: number; // Relative weight in the surprise box raffle (e.g. 100 standard, 10 rare)
+  isVisible?: boolean; // Option to show/hide product from catalog
 }
 
 export interface CartItem {

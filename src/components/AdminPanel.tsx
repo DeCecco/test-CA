@@ -7,6 +7,7 @@ import {
   Star,
   Tag,
   Eye,
+  EyeOff,
   FileDown,
   Upload,
   Lock,
@@ -103,6 +104,7 @@ export default function AdminPanel({
   const [extraImagesText, setExtraImagesText] = useState('');
   const [videoUrlInput, setVideoUrlInput] = useState('');
   const [raffleWeight, setRaffleWeight] = useState<string>('100');
+  const [newIsVisible, setNewIsVisible] = useState(true);
 
   // Search in Admin
   const [apiSearch, setApiSearch] = useState('');
@@ -202,6 +204,7 @@ export default function AdminPanel({
     setExtraImagesText('');
     setVideoUrlInput('');
     setIsOfferBonus(false);
+    setNewIsVisible(true);
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
@@ -237,7 +240,8 @@ export default function AdminPanel({
         images: extraImagesList.length > 0 ? extraImagesList : undefined,
         videoUrl: videoUrlInput.trim() || undefined,
         isOfferBonus: isOfferBonus || newScore <= 2,
-        raffleWeight: parseInt(raffleWeight, 10) || 100
+        raffleWeight: parseInt(raffleWeight, 10) || 100,
+        isVisible: newIsVisible
       };
       onUpdateProduct(updatedProduct);
       setEditingProduct(null);
@@ -255,7 +259,8 @@ export default function AdminPanel({
         videoUrl: videoUrlInput.trim() || undefined,
         status: 'disponible',
         isOfferBonus: isOfferBonus || newScore <= 2,
-        raffleWeight: parseInt(raffleWeight, 10) || 100
+        raffleWeight: parseInt(raffleWeight, 10) || 100,
+        isVisible: newIsVisible
       };
       onAddProduct(newProduct);
     }
@@ -272,6 +277,7 @@ export default function AdminPanel({
     setVideoUrlInput('');
     setIsOfferBonus(false);
     setRaffleWeight('100');
+    setNewIsVisible(true);
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
@@ -880,6 +886,19 @@ export default function AdminPanel({
               </label>
             </div>
 
+            <div className="flex items-center gap-2 pb-2">
+              <input
+                type="checkbox"
+                id="newIsVisibleCheckbox"
+                checked={newIsVisible}
+                onChange={(e) => setNewIsVisible(e.target.checked)}
+                className="rounded border-neutral-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+              />
+              <label htmlFor="newIsVisibleCheckbox" className="text-xs text-neutral-600 dark:text-neutral-400 font-bold flex items-center gap-1.5 cursor-pointer">
+                👁️ Visible en el Catálogo (Público)
+              </label>
+            </div>
+
             {/* Raffle Weight Input */}
             <div className="p-4 bg-neutral-50 dark:bg-neutral-850 border border-neutral-250 dark:border-neutral-800 rounded-xl space-y-3">
               <div>
@@ -1015,13 +1034,14 @@ export default function AdminPanel({
                   <th className="py-3 px-2">Categoría / Est.</th>
                   <th className="py-3 px-2">Precios (USD / UYU)</th>
                   <th className="py-3 px-2">Peticiones</th>
+                  <th className="py-3 px-2">Visibilidad</th>
                   <th className="py-3 px-2 text-right">Acción</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-neutral-100 dark:divide-neutral-800">
                 {filteredProducts.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="py-8 text-center text-neutral-500 italic">
+                    <td colSpan={6} className="py-8 text-center text-neutral-500 italic">
                       No se encontraron artículos que coincidan.
                     </td>
                   </tr>
@@ -1143,6 +1163,34 @@ export default function AdminPanel({
                         )}
                       </td>
 
+                      {/* Visibility Toggle */}
+                      <td className="py-3 px-2">
+                        <button
+                          onClick={() => {
+                            onUpdateProduct({
+                              ...product,
+                              isVisible: product.isVisible === false ? true : false
+                            });
+                          }}
+                          className={`px-2.5 py-1 rounded-lg text-[10px] font-black flex items-center gap-1 transition-all border cursor-pointer ${
+                            product.isVisible !== false
+                              ? 'bg-emerald-50 dark:bg-emerald-950/20 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-900/30 hover:border-black'
+                              : 'bg-neutral-100 dark:bg-neutral-800 text-neutral-500 dark:text-neutral-400 border-neutral-200 dark:border-neutral-700 hover:border-black'
+                          }`}
+                          title={product.isVisible !== false ? "Hacer oculto (no visible para los compradores)" : "Hacer visible (visible para los compradores)"}
+                        >
+                          {product.isVisible !== false ? (
+                            <>
+                              <Eye className="h-3.5 w-3.5" /> Visible
+                            </>
+                          ) : (
+                            <>
+                              <EyeOff className="h-3.5 w-3.5 text-neutral-450" /> Oculto
+                            </>
+                          )}
+                        </button>
+                      </td>
+
                       {/* Actions */}
                       <td className="py-3 px-2 text-right">
                         <button
@@ -1161,6 +1209,7 @@ export default function AdminPanel({
                             setExtraImagesText(product.images ? product.images.join('\n') : '');
                             setVideoUrlInput(product.videoUrl || '');
                             setRaffleWeight(product.raffleWeight !== undefined ? product.raffleWeight.toString() : '100');
+                            setNewIsVisible(product.isVisible !== false);
                             
                             // Scroll up smoothly to the form
                             window.scrollTo({ top: 350, behavior: 'smooth' });

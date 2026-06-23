@@ -24,6 +24,7 @@ import ProductCard from './components/ProductCard';
 import MysteryBox from './components/MysteryBox';
 import AdminPanel from './components/AdminPanel';
 import { translations, categoryTranslations } from './translations';
+import { BrowserRouter } from 'react-router-dom';
 
 const isLocalhost = 
   typeof window !== 'undefined' &&
@@ -52,11 +53,7 @@ export default function App() {
 
   // Admin WhatsApp custom configuration
   const [whatsappNumber, setWhatsappNumber] = useState(() => {
-    // Only load customized WA number if local
-    if (isLocalhost) {
-      return localStorage.getItem('garage_sale_wa_num') || '59899123456';
-    }
-    return '59899123456';
+    return localStorage.getItem('garage_sale_wa_num') || '59897672249';
   });
 
   // Buyer Inquiry Cart

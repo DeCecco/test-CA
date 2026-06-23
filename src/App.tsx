@@ -801,17 +801,21 @@ export default function App() {
             </p>
           </div>
 
-          <div className="flex gap-4">
-            <button
-              onClick={() => {
-                setViewMode('admin');
-                window.scrollTo({ top: 300, behavior: 'smooth' });
-              }}
-              className="hover:text-white transition-colors"
-            >
-              {t.controlOwner}
-            </button>
-            <span>•</span>
+          <div className="flex gap-4 animate-fadeIn">
+            {isLocalhost && (
+              <>
+                <button
+                  onClick={() => {
+                    setViewMode('admin');
+                    window.scrollTo({ top: 300, behavior: 'smooth' });
+                  }}
+                  className="hover:text-white transition-colors"
+                >
+                  {t.controlOwner}
+                </button>
+                <span>•</span>
+              </>
+            )}
             <button
               onClick={() => {
                 if (confirm(lang === 'es' ? '¿Restablecer datos originales del simulador? Se limpiará caché.' : 'Reset raw simulator database? It will clear cache.')) {

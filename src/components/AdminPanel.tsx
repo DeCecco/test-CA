@@ -66,7 +66,7 @@ export default function AdminPanel({
   setRaffleEnabled,
 }: AdminPanelProps) {
   // Security States
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(true);
   const [password, setPassword] = useState('');
   const [authError, setAuthError] = useState('');
 
@@ -571,23 +571,6 @@ export default function AdminPanel({
           >
             <BookOpen className="h-4 w-4" /> Gestión de Catálogo
           </button>
-          <button
-            onClick={() => {
-              setActiveTab('security');
-              setSetupStep(1);
-              setTempCode('');
-              setSetupError('');
-              setPwdSuccess('');
-              setPwdError('');
-            }}
-            className={`px-4 py-2 font-bold text-xs uppercase flex items-center gap-1.5 transition-all ${
-              activeTab === 'security'
-                ? 'bg-black text-white dark:bg-white dark:text-black border-2 border-black'
-                : 'text-neutral-600 dark:text-neutral-400 hover:text-black dark:hover:text-white border border-transparent'
-            }`}
-          >
-            <Shield className="h-4 w-4 text-amber-500 fill-amber-500/10" /> Seguridad & 2FA
-          </button>
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
@@ -622,13 +605,6 @@ export default function AdminPanel({
               id="admin-secure-wa-input"
             />
           </div>
-
-          <button
-            onClick={handleLogout}
-            className="px-4 py-2 bg-rose-50 dark:bg-rose-950/10 text-rose-600 hover:bg-rose-105 hover:text-rose-700 dark:hover:bg-rose-900/30 border-2 border-rose-500 font-extrabold text-xs flex items-center gap-1.5 uppercase transition-all shadow-[2px_2px_0px_0px_rgba(244,63,94,1)] active:translate-x-0.5 active:translate-y-0.5 cursor-pointer"
-          >
-            <LogOut className="h-4 w-4 stroke-[2.5px]" /> Cerrar Sesión
-          </button>
         </div>
       </div>
 

@@ -25,15 +25,26 @@ import MysteryBox from './components/MysteryBox';
 import AdminPanel from './components/AdminPanel';
 import { translations, categoryTranslations } from './translations';
 
+const isLocalhost = 
+  typeof window !== 'undefined' &&
+  (window.location.hostname === 'localhost' ||
+   window.location.hostname === '127.0.0.1' ||
+   window.location.hostname.startsWith('192.168.') ||
+   window.location.hostname.startsWith('10.') ||
+   window.location.hostname.endsWith('.local'));
+
 export default function App() {
   // Catalog State - hydrated from localStorage or defaults
   const [products, setProducts] = useState<Product[]>(() => {
-    const saved = localStorage.getItem('garage_sale_catalog');
-    if (saved) {
-      try {
-        return JSON.parse(saved);
-      } catch (e) {
-        return INITIAL_PRODUCTS;
+    // Only load from localStorage if running locally to avoid showing cached/stale data on live production
+    if (isLocalhost) {
+      const saved = localStorage.getItem('garage_sale_catalog');
+      if (saved) {
+        try {
+          return JSON.parse(saved);
+        } catch (e) {
+          return INITIAL_PRODUCTS;
+        }
       }
     }
     return INITIAL_PRODUCTS;
@@ -41,7 +52,11 @@ export default function App() {
 
   // Admin WhatsApp custom configuration
   const [whatsappNumber, setWhatsappNumber] = useState(() => {
-    return localStorage.getItem('garage_sale_wa_num') || '59899123456';
+    // Only load customized WA number if local
+    if (isLocalhost) {
+      return localStorage.getItem('garage_sale_wa_num') || '59899123456';
+    }
+    return '59899123456';
   });
 
   // Buyer Inquiry Cart
@@ -90,43 +105,65 @@ export default function App() {
   // Short hand translation helper
   const t = translations[lang];
 
-  const isLocalhost = 
-    typeof window !== 'undefined' &&
-    (window.location.hostname === 'localhost' ||
-     window.location.hostname === '127.0.0.1' ||
-     window.location.hostname.startsWith('192.168.') ||
-     window.location.hostname.startsWith('10.') ||
-     window.location.hostname.endsWith('.local'));
-
   useEffect(() => {
     if (viewMode === 'admin' && !isLocalhost) {
       setViewMode('buyer');
     }
-  }, [viewMode, isLocalhost]);
+  }, [viewMode]);
 
   // Sync products, cart, gifts & lang to localStorage
   useEffect(() => {
-    localStorage.setItem('garage_sale_lang', lang);
+    try {
+      localStorage.setItem('garage_sale_lang', lang);
+    } catch (e) {
+      console.warn('LocalStorage error:', e);
+    }
   }, [lang]);
 
   useEffect(() => {
-    localStorage.setItem('garage_sale_catalog', JSON.stringify(products));
+    if (isLocalhost) {
+      try {
+        localStorage.setItem('garage_sale_catalog', JSON.stringify(products));
+      } catch (e) {
+        console.error('LocalStorage quota exceeded or unavailable. Catalog changes are kept in memory but not saved permanently. Export your JSON file periodically to avoid losing changes!', e);
+      }
+    }
   }, [products]);
 
   useEffect(() => {
-    localStorage.setItem('garage_sale_cart', JSON.stringify(cart));
+    try {
+      localStorage.setItem('garage_sale_cart', JSON.stringify(cart));
+    } catch (e) {
+      console.warn('LocalStorage error:', e);
+    }
   }, [cart]);
 
   useEffect(() => {
-    localStorage.setItem('garage_sale_gift', wonGift ? JSON.stringify(wonGift) : '');
+    try {
+      localStorage.setItem('garage_sale_gift', wonGift ? JSON.stringify(wonGift) : '');
+    } catch (e) {
+      console.warn('LocalStorage error:', e);
+    }
   }, [wonGift]);
 
   useEffect(() => {
-    localStorage.setItem('garage_sale_wa_num', whatsappNumber);
+    if (isLocalhost) {
+      try {
+        localStorage.setItem('garage_sale_wa_num', whatsappNumber);
+      } catch (e) {
+        console.warn('LocalStorage error:', e);
+      }
+    }
   }, [whatsappNumber]);
 
   useEffect(() => {
-    localStorage.setItem('garage_sale_raffle_enabled', String(raffleEnabled));
+    if (isLocalhost) {
+      try {
+        localStorage.setItem('garage_sale_raffle_enabled', String(raffleEnabled));
+      } catch (e) {
+        console.warn('LocalStorage error:', e);
+      }
+    }
   }, [raffleEnabled]);
 
   // Derived Values

@@ -11,6 +11,7 @@ interface ProductCardProps {
   onQuickWhatsApp: (product: Product) => void;
   lang?: 'es' | 'en';
   key?: string;
+  raffleEnabled?: boolean;
 }
 
 function getVideoEmbedUrl(url: string) {
@@ -60,6 +61,7 @@ export default function ProductCard({
   isInCart,
   onQuickWhatsApp,
   lang = 'es',
+  raffleEnabled = true,
 }: ProductCardProps) {
   const isPremium = product.score >= 4;
   const isSold = product.status === 'vendido';
@@ -362,17 +364,19 @@ export default function ProductCard({
           </div>
 
           {/* Promo info banner on the card */}
-          <div className="mt-3 font-sans w-full">
-            {isPremium ? (
-              <div className="bg-amber-100 dark:bg-amber-950/20 text-neutral-900 dark:text-amber-300 p-2 text-[10px] font-bold flex items-center gap-1 border border-black">
-                {textDict.premiumPromo}
-              </div>
-            ) : (
-              <div className="bg-gray-100 dark:bg-neutral-800/50 text-neutral-600 dark:text-neutral-400 p-2 text-[10px] font-bold border border-gray-300 dark:border-neutral-700">
-                {textDict.standardPromo}
-              </div>
-            )}
-          </div>
+          {raffleEnabled && (
+            <div className="mt-3 font-sans w-full">
+              {isPremium ? (
+                <div className="bg-amber-100 dark:bg-amber-950/20 text-neutral-900 dark:text-amber-300 p-2 text-[10px] font-bold flex items-center gap-1 border border-black">
+                  {textDict.premiumPromo}
+                </div>
+              ) : (
+                <div className="bg-gray-100 dark:bg-neutral-800/50 text-neutral-600 dark:text-neutral-400 p-2 text-[10px] font-bold border border-gray-300 dark:border-neutral-700">
+                  {textDict.standardPromo}
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Footer controls */}
           <div className="mt-4 flex gap-2">

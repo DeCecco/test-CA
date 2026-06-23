@@ -90,6 +90,20 @@ export default function App() {
   // Short hand translation helper
   const t = translations[lang];
 
+  const isLocalhost = 
+    typeof window !== 'undefined' &&
+    (window.location.hostname === 'localhost' ||
+     window.location.hostname === '127.0.0.1' ||
+     window.location.hostname.startsWith('192.168.') ||
+     window.location.hostname.startsWith('10.') ||
+     window.location.hostname.endsWith('.local'));
+
+  useEffect(() => {
+    if (viewMode === 'admin' && !isLocalhost) {
+      setViewMode('buyer');
+    }
+  }, [viewMode, isLocalhost]);
+
   // Sync products, cart, gifts & lang to localStorage
   useEffect(() => {
     localStorage.setItem('garage_sale_lang', lang);
@@ -303,23 +317,25 @@ export default function App() {
           </div>
 
           <div className="flex flex-wrap gap-3 w-full md:w-auto">
-            <button
-              onClick={() => {
-                setViewMode(viewMode === 'buyer' ? 'admin' : 'buyer');
-              }}
-              className="flex-1 md:flex-initial px-5 py-3 border-2 border-black bg-black text-white hover:bg-neutral-800 font-bold active:scale-98 transition-all flex items-center justify-center gap-2 text-xs uppercase tracking-tight shadow-[3px_3px_0px_0px_rgba(255,255,255,1)]"
-              id="view-mode-toggle-btn"
-            >
-              {viewMode === 'buyer' ? (
-                <>
-                  <Lock className="h-4 w-4" /> {t.adminBtnOwner}
-                </>
-              ) : (
-                <>
-                  {t.adminBtnBuyer}
-                </>
-              )}
-            </button>
+            {isLocalhost && (
+              <button
+                onClick={() => {
+                  setViewMode(viewMode === 'buyer' ? 'admin' : 'buyer');
+                }}
+                className="flex-1 md:flex-initial px-5 py-3 border-2 border-black bg-black text-white hover:bg-neutral-800 font-bold active:scale-98 transition-all flex items-center justify-center gap-2 text-xs uppercase tracking-tight shadow-[3px_3px_0px_0px_rgba(255,255,255,1)]"
+                id="view-mode-toggle-btn"
+              >
+                {viewMode === 'buyer' ? (
+                  <>
+                    <Lock className="h-4 w-4" /> {t.adminBtnOwner}
+                  </>
+                ) : (
+                  <>
+                    {t.adminBtnBuyer}
+                  </>
+                )}
+              </button>
+            )}
 
             <button
               onClick={() => setShowFaq(!showFaq)}
@@ -530,6 +546,7 @@ export default function App() {
                       isInCart={cart.some((item) => item.product.id === product.id)}
                       onQuickWhatsApp={handleQuickWhatsApp}
                       lang={lang}
+                      raffleEnabled={raffleEnabled}
                     />
                   ))
                 )}

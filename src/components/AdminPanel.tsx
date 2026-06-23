@@ -27,7 +27,8 @@ import {
   RefreshCw,
   LogOut,
   Check,
-  Settings
+  Settings,
+  Link
 } from 'lucide-react';
 import { Product, ProductStatus } from '../types';
 import { CATEGORIES } from '../data';
@@ -107,6 +108,7 @@ export default function AdminPanel({
   const [isOfferBonus, setIsOfferBonus] = useState(false);
   const [extraImagesText, setExtraImagesText] = useState('');
   const [videoUrlInput, setVideoUrlInput] = useState('');
+  const [originalUrl, setOriginalUrl] = useState('');
   const [raffleWeight, setRaffleWeight] = useState<string>('100');
   const [newIsVisible, setNewIsVisible] = useState(true);
   const [newShowOfferBanner, setNewShowOfferBanner] = useState(false);
@@ -115,6 +117,7 @@ export default function AdminPanel({
   const [apiSearch, setApiSearch] = useState('');
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const extraFileInputRef = useRef<HTMLInputElement>(null);
   const importInputRef = useRef<HTMLInputElement>(null);
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -190,6 +193,29 @@ export default function AdminPanel({
     }
   };
 
+  const handleExtraImagesUploaded = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (files && files.length > 0) {
+      const promises = Array.from(files).map((file: File) => {
+        return new Promise<string>((resolve) => {
+          const reader = new FileReader();
+          reader.onloadend = () => {
+            resolve(reader.result as string);
+          };
+          reader.readAsDataURL(file);
+        });
+      });
+
+      Promise.all(promises).then((base64s) => {
+        const currentUrls = extraImagesText.trim()
+          ? extraImagesText.split(/[\n,]+/).map(url => url.trim())
+          : [];
+        const updatedUrls = [...currentUrls, ...base64s];
+        setExtraImagesText(updatedUrls.join('\n'));
+      });
+    }
+  };
+
   const autofillExchangeRate = () => {
     const usd = parseFloat(newPriceUSD);
     if (!isNaN(usd)) {
@@ -208,10 +234,12 @@ export default function AdminPanel({
     setUploadedBase64('');
     setExtraImagesText('');
     setVideoUrlInput('');
+    setOriginalUrl('');
     setIsOfferBonus(false);
     setNewIsVisible(true);
     setNewShowOfferBanner(false);
     if (fileInputRef.current) fileInputRef.current.value = '';
+    if (extraFileInputRef.current) extraFileInputRef.current.value = '';
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -248,7 +276,8 @@ export default function AdminPanel({
         isOfferBonus: isOfferBonus || newScore <= 2,
         raffleWeight: parseInt(raffleWeight, 10) || 100,
         isVisible: newIsVisible,
-        showOfferBanner: newShowOfferBanner
+        showOfferBanner: newShowOfferBanner,
+        originalUrl: originalUrl.trim() || undefined
       };
       onUpdateProduct(updatedProduct);
       setEditingProduct(null);
@@ -268,7 +297,8 @@ export default function AdminPanel({
         isOfferBonus: isOfferBonus || newScore <= 2,
         raffleWeight: parseInt(raffleWeight, 10) || 100,
         isVisible: newIsVisible,
-        showOfferBanner: newShowOfferBanner
+        showOfferBanner: newShowOfferBanner,
+        originalUrl: originalUrl.trim() || undefined
       };
       onAddProduct(newProduct);
     }
@@ -283,11 +313,13 @@ export default function AdminPanel({
     setUploadedBase64('');
     setExtraImagesText('');
     setVideoUrlInput('');
+    setOriginalUrl('');
     setIsOfferBonus(false);
     setRaffleWeight('100');
     setNewIsVisible(true);
     setNewShowOfferBanner(false);
     if (fileInputRef.current) fileInputRef.current.value = '';
+    if (extraFileInputRef.current) extraFileInputRef.current.value = '';
   };
 
   const handleImportJSON = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -843,9 +875,28 @@ export default function AdminPanel({
 
             {/* Multiple extra images */}
             <div>
-              <label className="block text-xs font-semibold text-neutral-400 uppercase tracking-wider mb-1 flex items-center gap-1">
-                <ImageIcon className="h-3.5 w-3.5" /> Imágenes adicionales (Opcional)
-              </label>
+              <div className="flex items-center justify-between mb-1">
+                <label className="block text-xs font-semibold text-neutral-400 uppercase tracking-wider flex items-center gap-1">
+                  <ImageIcon className="h-3.5 w-3.5" /> Imágenes adicionales (Opcional)
+                </label>
+                <div>
+                  <button
+                    type="button"
+                    onClick={() => extraFileInputRef.current?.click()}
+                    className="flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/20 hover:bg-indigo-100 border border-indigo-200 dark:border-indigo-900 rounded-lg cursor-pointer transition-colors"
+                  >
+                    <Upload className="h-2.5 w-2.5" /> Subir fotos
+                  </button>
+                  <input
+                    type="file"
+                    ref={extraFileInputRef}
+                    accept="image/*"
+                    multiple
+                    onChange={handleExtraImagesUploaded}
+                    className="hidden"
+                  />
+                </div>
+              </div>
               <textarea
                 placeholder="https://link-imagen1.jpg&#10;https://link-imagen2.jpg&#10;(Una URL por línea, o separadas por comas)"
                 value={extraImagesText}
@@ -854,7 +905,7 @@ export default function AdminPanel({
                 className="w-full px-3 py-2 bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-xl text-neutral-900 dark:text-white focus:ring-2 focus:ring-indigo-500 text-xs font-mono"
               />
               <span className="text-[10px] text-neutral-400 block mt-0.5 leading-relaxed">
-                Agrega fotos adicionales para que el comprador las vea en un carrusel interactivo táctil. Se abrirán en tamaño grande al tocarlas.
+                Agrega fotos adicionales para que el comprador las vea en un carrusel interactivo táctil. Se abrirán en tamaño grande al tocarlas. ¡Puedes presionar <strong>"Subir fotos"</strong> para cargar archivos!
               </span>
             </div>
 
@@ -872,6 +923,24 @@ export default function AdminPanel({
               />
               <span className="text-[10px] text-neutral-400 block mt-0.5 leading-relaxed">
                 Enlaces de YouTube, Shorts, o videos MP4 directos. Se reproducirán directamente en el carrusel para el comprador.
+              </span>
+            </div>
+
+            {/* Original Product Link */}
+            <div>
+              <label className="block text-xs font-semibold text-neutral-400 uppercase tracking-wider mb-1 flex items-center gap-1">
+                <Link className="h-3.5 w-3.5 text-indigo-500" /> Link al Producto Original (Opcional)
+              </label>
+              <input
+                type="text"
+                placeholder="Ej. https://amazon.com/... o tienda oficial del artículo"
+                value={originalUrl}
+                onChange={(e) => setOriginalUrl(e.target.value)}
+                className="w-full px-3 py-2 bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-xl text-neutral-900 dark:text-white focus:ring-2 focus:ring-indigo-500 text-xs"
+                id="original-url-input"
+              />
+              <span className="text-[10px] text-neutral-400 block mt-0.5 leading-relaxed">
+                Permite a los interesados ver el precio de venta original o la ficha técnica del producto real para comparar y valorar el descuento.
               </span>
             </div>
 
@@ -1247,6 +1316,7 @@ export default function AdminPanel({
                             setRaffleWeight(product.raffleWeight !== undefined ? product.raffleWeight.toString() : '100');
                             setNewIsVisible(product.isVisible !== false);
                             setNewShowOfferBanner(!!product.showOfferBanner);
+                            setOriginalUrl(product.originalUrl || '');
                             
                             // Scroll up smoothly to the form
                             window.scrollTo({ top: 350, behavior: 'smooth' });

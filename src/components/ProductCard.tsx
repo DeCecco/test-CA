@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'motion/react';
-import { Sparkles, Star, Gift, Check, MessageSquare, ChevronLeft, ChevronRight, Play, Maximize2, X } from 'lucide-react';
+import { Sparkles, Star, Gift, Check, MessageCircle, ChevronLeft, ChevronRight, Play, Maximize2, X, ExternalLink } from 'lucide-react';
 import { Product } from '../types';
 import { categoryTranslations } from '../translations';
 
@@ -343,9 +343,24 @@ export default function ProductCard({
               {product.name}
             </h3>
 
-            <p className="text-neutral-500 dark:text-neutral-400 text-xs line-clamp-2 leading-relaxed h-8">
+            <div className="text-neutral-500 dark:text-neutral-400 text-xs leading-relaxed max-h-16 overflow-y-auto scrollbar-thin scrollbar-thumb-neutral-300 dark:scrollbar-thumb-neutral-700 pr-1 select-text" style={{ wordBreak: 'break-word' }}>
               {product.description}
-            </p>
+            </div>
+
+            {product.originalUrl && (
+              <div className="pt-1 flex items-center">
+                <a
+                  href={product.originalUrl.startsWith('http') ? product.originalUrl : `https://${product.originalUrl}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 text-[10px] font-bold text-[#3483FA] hover:underline"
+                  id={`original-link-${product.id}`}
+                >
+                  <ExternalLink className="h-3 w-3 stroke-[2.5px]" />
+                  {lang === 'es' ? 'Ver Original' : 'View Original'}
+                </a>
+              </div>
+            )}
           </div>
 
           {/* Price Tag with Uruguay display */}
@@ -407,7 +422,7 @@ export default function ProductCard({
                   title={textDict.quickWaTitle}
                   id={`quick-wa-btn-${product.id}`}
                 >
-                  <MessageSquare className="h-4 w-4" />
+                  <MessageCircle className="h-4 w-4 text-[#25D366] fill-[#25D366]/10" />
                 </button>
               </>
             ) : (

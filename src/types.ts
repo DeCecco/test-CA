@@ -16,6 +16,7 @@ export interface Product {
   raffleWeight?: number; // Relative weight in the surprise box raffle (e.g. 100 standard, 10 rare)
   isVisible?: boolean; // Option to show/hide product from catalog
   showOfferBanner?: boolean; // Label with a red offer ribbon ribbon/banner
+  originalUrl?: string; // Link to the original retail product
 }
 
 export interface CartItem {

@@ -119,8 +119,8 @@ export default function ProductCard({
       reserved: 'RESERVADO',
       reservedDesc: 'Preguntá si se libera',
       clearancePrice: 'Precio de liquidación',
-      premiumPromo: '🎁 ¡Llevá este premium y tirá en la Caja de Regalos!',
-      standardPromo: '🪴 Ahorro: Elegible para sumarlo de regalo.',
+     // premiumPromo: '🎁 ¡Llevá este premium y tirá en la Caja de Regalos!',
+   //   standardPromo: '🪴 Ahorro: Elegible para sumarlo de regalo.',
       inList: 'En lista',
       addList: 'Llevar / Reservar',
       outOfStock: 'Sin Stock',
@@ -135,8 +135,8 @@ export default function ProductCard({
       reserved: 'RESERVED',
       reservedDesc: 'Ask if it becomes available',
       clearancePrice: 'Clearance price',
-      premiumPromo: '🎁 Buy this premium item & spin the Gift Box!',
-      standardPromo: '🪴 Bargain: Eligible to get as a free gift.',
+   //   premiumPromo: '🎁 Buy this premium item & spin the Gift Box!',
+    //  standardPromo: '🪴 Bargain: Eligible to get as a free gift.',
       inList: 'In list',
       addList: 'Claim / Reserve',
       outOfStock: 'Out of Stock',
@@ -382,12 +382,12 @@ export default function ProductCard({
           {raffleEnabled && (
             <div className="mt-3 font-sans w-full">
               {isPremium ? (
-                <div className="bg-amber-100 dark:bg-amber-950/20 text-neutral-900 dark:text-amber-300 p-2 text-[10px] font-bold flex items-center gap-1 border border-black">
-                  {textDict.premiumPromo}
+                <div className="">
+                
                 </div>
               ) : (
-                <div className="bg-gray-100 dark:bg-neutral-800/50 text-neutral-600 dark:text-neutral-400 p-2 text-[10px] font-bold border border-gray-300 dark:border-neutral-700">
-                  {textDict.standardPromo}
+                <div className="">
+                  
                 </div>
               )}
             </div>

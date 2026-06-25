@@ -545,9 +545,8 @@ export default function App() {
                     </button>
                   </div>
                 ) : (
-                  <div className="bg-white dark:bg-neutral-900 border-2 border-dashed border-black dark:border-neutral-700 p-5 text-xs text-neutral-800 dark:text-neutral-100 flex items-center gap-3">
-                    <Info className="h-5 w-5 text-[#3483FA] flex-shrink-0" />
-                    <p className="font-bold" dangerouslySetInnerHTML={{ __html: t.advisorTip }} />
+                  <div className="">
+                                        
                   </div>
                 )
               )}

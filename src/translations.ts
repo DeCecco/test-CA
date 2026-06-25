@@ -2,7 +2,7 @@ export const translations = {
   es: {
     badge: "¡Gran Liquidación de Mudanza!",
     title: "¡Vendo todo por mudanza a Canadá!",
-    desc: "Me estoy mudando de Montevideo a Canadá. Para no viajar con sobrepeso, vendo casi todos los artículos del hogar a precios increíbles. Los de puntuación baja se van como regalo o combo si llevas artículos premium. ¡Aprovechá antes de que parta el vuelo!",
+    desc: "Me estoy mudando de Montevideo a Canadá. Para no viajar con sobrepeso, vendo casi todos los artículos del hogar a precios increíbles. ¡Aprovechá antes de que parta el vuelo!",
     adminBtnOwner: "Administrar Catálogo (Dueño)",
     adminBtnBuyer: "Ver como Comprador",
     howItWorks: "¿Cómo comprar/Funciona?",
@@ -56,7 +56,7 @@ export const translations = {
   en: {
     badge: "Big Moving Sale!",
     title: "Selling everything to move to Canada!",
-    desc: "I'm moving from Montevideo to Canada. To avoid traveling over weight limit, I'm selling almost all household items at incredible prices. Lower-score items are given as free gifts or combos with a premium purchase. Seize the opportunity before the flight takes off!",
+    desc: "I'm moving from Montevideo to Canada. To avoid traveling over weight limit, I'm selling almost all household items at incredible prices. Seize the opportunity before the flight takes off!",
     adminBtnOwner: "Manage Catalog (Owner)",
     adminBtnBuyer: "View as Buyer",
     howItWorks: "How to buy / Works",

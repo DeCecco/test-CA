@@ -21,7 +21,6 @@ import {
 import { Product, CartItem } from './types';
 import { INITIAL_PRODUCTS, CATEGORIES } from './data';
 import ProductCard from './components/ProductCard';
-import MysteryBox from './components/MysteryBox';
 import AdminPanel from './components/AdminPanel';
 import { translations, categoryTranslations } from './translations';
 
@@ -72,34 +71,16 @@ export default function App() {
     return [];
   });
 
-  // Won Gift from Mystery Box
-  const [wonGift, setWonGift] = useState<Product | null>(() => {
-    const saved = localStorage.getItem('garage_sale_gift');
-    if (saved) {
-      try {
-        return JSON.parse(saved);
-      } catch (e) {
-        return null;
-      }
-    }
-    return null;
-  });
-
   // UI Control states
   const [viewMode, setViewMode] = useState<'buyer' | 'admin'>('buyer');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('Todos');
   const [selectedScoreFilter, setSelectedScoreFilter] = useState<'all' | 'high' | 'medium' | 'free'>('all');
-  const [isMysteryBoxOpen, setIsMysteryBoxOpen] = useState(false);
+  const [sortBy, setSortBy] = useState<'default' | 'price-desc' | 'price-asc'>('default');
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [showFaq, setShowFaq] = useState(false);
   const [lang, setLang] = useState<'es' | 'en'>(() => {
     return (localStorage.getItem('garage_sale_lang') as 'es' | 'en') || 'es';
-  });
-
-  const [raffleEnabled, setRaffleEnabled] = useState<boolean>(() => {
-    const saved = localStorage.getItem('garage_sale_raffle_enabled');
-    return saved !== 'false';
   });
 
   // Short hand translation helper
@@ -139,14 +120,6 @@ export default function App() {
   }, [cart]);
 
   useEffect(() => {
-    try {
-      localStorage.setItem('garage_sale_gift', wonGift ? JSON.stringify(wonGift) : '');
-    } catch (e) {
-      console.warn('LocalStorage error:', e);
-    }
-  }, [wonGift]);
-
-  useEffect(() => {
     if (isLocalhost) {
       try {
         localStorage.setItem('garage_sale_wa_num', whatsappNumber);
@@ -156,33 +129,9 @@ export default function App() {
     }
   }, [whatsappNumber]);
 
-  useEffect(() => {
-    if (isLocalhost) {
-      try {
-        localStorage.setItem('garage_sale_raffle_enabled', String(raffleEnabled));
-      } catch (e) {
-        console.warn('LocalStorage error:', e);
-      }
-    }
-  }, [raffleEnabled]);
-
-  // Derived Values
-  const availableLowScoreGifts = products.filter(
-    (p) => (p.isOfferBonus || p.score <= 2) && p.status === 'disponible' && p.isVisible !== false
-  );
-
-  const cartHasPremiumItem = cart.some((item) => item.product.score >= 4 && item.product.status === 'disponible');
-
   // Total sums
   const totalUSD = cart.reduce((sum, item) => sum + item.product.priceUSD * item.quantity, 0);
   const totalUYU = cart.reduce((sum, item) => sum + item.product.priceUYU * item.quantity, 0);
-
-  // Auto forfeit won gift if custom conditions aren't met
-  useEffect(() => {
-    if (!cartHasPremiumItem && wonGift) {
-      setWonGift(null);
-    }
-  }, [cart, cartHasPremiumItem, wonGift]);
 
   // Handlers
   const handleAddToCart = (product: Product) => {
@@ -209,23 +158,15 @@ export default function App() {
     window.open(`https://wa.me/${whatsappNumber}?text=${encoded}`, '_blank');
   };
 
-  const handleClaimGift = (gift: Product) => {
-    setWonGift(gift);
-  };
-
   const handleSendFullInquiry = () => {
     if (cart.length === 0) return;
 
-    let itemsText = cart
+    const itemsText = cart
       .map(
         (item) =>
           `• *${item.product.name}* [Cat: ${item.product.category}] - U$S ${item.product.priceUSD} (~$${item.product.priceUYU} UYU)`
       )
       .join('\n');
-
-    if (raffleEnabled && wonGift) {
-      itemsText += `\n\n` + t.waGiftLine.replace('{name}', wonGift.name);
-    }
 
     const message = t.waGreetingFull
       .replace('{items}', itemsText)
@@ -258,9 +199,6 @@ export default function App() {
   const handleDeleteProduct = (id: string) => {
     setProducts(products.filter((p) => p.id !== id));
     setCart(cart.filter((item) => item.product.id !== id));
-    if (wonGift?.id === id) {
-      setWonGift(null);
-    }
   };
 
   const handleExportCatalog = () => {
@@ -280,34 +218,43 @@ export default function App() {
   const handleResetCatalog = () => {
     setProducts(INITIAL_PRODUCTS);
     setCart([]);
-    setWonGift(null);
   };
 
-  // Filter Catalog
-  const filteredProducts = products.filter((p) => {
-    // Only visible products for buyers
-    if (p.isVisible === false) {
-      return false;
-    }
+  // Filter Catalog and Sort
+  const filteredProducts = products
+    .filter((p) => {
+      // Only visible products for buyers
+      if (p.isVisible === false) {
+        return false;
+      }
 
-    // Category match
-    if (selectedCategory !== 'Todos' && p.category !== selectedCategory) {
-      return false;
-    }
+      // Category match
+      if (selectedCategory !== 'Todos' && p.category !== selectedCategory) {
+        return false;
+      }
 
-    // Score classification
-    if (selectedScoreFilter === 'high' && p.score < 4) return false;
-    if (selectedScoreFilter === 'medium' && (p.score !== 3)) return false;
-    if (selectedScoreFilter === 'free' && (p.score > 2 && !p.isOfferBonus)) return false;
+      // Score classification
+      if (selectedScoreFilter === 'high' && p.score < 4) return false;
+      if (selectedScoreFilter === 'medium' && (p.score !== 3)) return false;
+      if (selectedScoreFilter === 'free' && (p.score > 2 && !p.isOfferBonus)) return false;
 
-    // Search query match
-    const query = searchQuery.toLowerCase();
-    return (
-      p.name.toLowerCase().includes(query) ||
-      p.description.toLowerCase().includes(query) ||
-      p.category.toLowerCase().includes(query)
-    );
-  });
+      // Search query match
+      const query = searchQuery.toLowerCase();
+      return (
+        p.name.toLowerCase().includes(query) ||
+        p.description.toLowerCase().includes(query) ||
+        p.category.toLowerCase().includes(query)
+      );
+    })
+    .sort((a, b) => {
+      if (sortBy === 'price-desc') {
+        return b.priceUSD - a.priceUSD;
+      }
+      if (sortBy === 'price-asc') {
+        return a.priceUSD - b.priceUSD;
+      }
+      return 0;
+    });
 
   return (
     <div id="main-layout" className="min-h-screen bg-neutral-50 dark:bg-neutral-950 text-neutral-800 dark:text-neutral-100 transition-colors duration-300">
@@ -395,7 +342,7 @@ export default function App() {
             className="bg-black border-b-4 border-black text-white overflow-hidden py-6 px-4"
             id="faq-section"
           >
-            <div className="max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-1 p-3 border-2 border-neutral-800 bg-neutral-900">
                 <div className="flex items-center gap-2">
                   <span className="p-1 px-2.5 bg-[#3483FA] text-white border border-black font-mono text-xs font-black">1</span>
@@ -408,21 +355,11 @@ export default function App() {
 
               <div className="space-y-1 p-3 border-2 border-neutral-800 bg-neutral-900">
                 <div className="flex items-center gap-2">
-                  <span className="p-1 px-2.5 bg-[#FFE600] text-black border border-black font-mono text-xs font-black">2</span>
+                  <span className="p-1 px-2.5 bg-[#00A650] text-white border border-black font-mono text-xs font-black">2</span>
                   <span className="font-extrabold text-sm uppercase tracking-tight">{t.step2Title}</span>
                 </div>
                 <p className="text-xs text-neutral-300 leading-relaxed pt-1">
                   {t.step2Desc}
-                </p>
-              </div>
-
-              <div className="space-y-1 p-3 border-2 border-neutral-800 bg-neutral-900">
-                <div className="flex items-center gap-2">
-                  <span className="p-1 px-2.5 bg-[#00A650] text-white border border-black font-mono text-xs font-black">3</span>
-                  <span className="font-extrabold text-sm uppercase tracking-tight">{t.step3Title}</span>
-                </div>
-                <p className="text-xs text-neutral-300 leading-relaxed pt-1">
-                  {t.step3Desc}
                 </p>
               </div>
             </div>
@@ -443,28 +380,39 @@ export default function App() {
               className="space-y-8"
             >
               
+              {/* RED BANNER REGARDING NEGOTIABLE PRICES */}
+              <div className="bg-red-600 border-2 border-black text-white p-4 flex items-center gap-3 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] dark:shadow-[4px_4px_0px_0px_rgba(255,255,255,0.08)]">
+                <AlertCircle className="h-6 w-6 text-white flex-shrink-0 animate-pulse" />
+                <div className="text-xs md:text-sm font-bold text-left">
+                  {lang === 'es' ? (
+                    <span><strong>¡Precios Conversables!</strong> Algunos de los precios publicados se pueden negociar o hacer un descuento por combos si te interesan varios artículos. ¡No dudes en consultar por WhatsApp! 💬</span>
+                  ) : (
+                    <span><strong>Prices are Negotiable!</strong> Some of the listed prices are open for negotiation, and bundle discounts can be made if you're interested in multiple items. Don't hesitate to ask via WhatsApp! 💬</span>
+                  )}
+                </div>
+              </div>
+
               {/* FILTERS AND SEARCH COMPONENT */}
-              <div className="bg-white dark:bg-neutral-900 p-5 border-2 border-black dark:border-neutral-700 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] dark:shadow-[4px_4px_0px_0px_rgba(255,255,255,0.08)] flex flex-col lg:flex-row gap-4 items-center justify-between">
+              <div className="bg-white dark:bg-neutral-900 p-3 border-2 border-black dark:border-neutral-700 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] dark:shadow-[4px_4px_0px_0px_rgba(255,255,255,0.08)] flex flex-col md:flex-row gap-3 items-center justify-between">
                 
                 {/* Search Bar */}
-                <div className="relative w-full lg:max-w-xs">
+                <div className="relative w-full md:w-auto md:flex-1 md:max-w-xs">
                   <Search className="absolute left-3 top-3 h-4.5 w-4.5 text-neutral-400" />
                   <input
                     type="text"
                     placeholder={t.searchPlaceholder}
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2.5 bg-neutral-50 dark:bg-neutral-800 border-2 border-black dark:border-neutral-700 text-xs md:text-sm text-neutral-900 dark:text-white placeholder-neutral-400 focus:outline-none focus:bg-white"
+                    className="w-full pl-10 pr-4 py-2.5 bg-neutral-50 dark:bg-neutral-800 border-2 border-black dark:border-neutral-700 text-xs text-neutral-900 dark:text-white placeholder-neutral-400 focus:outline-none focus:bg-white"
                     id="catalog-search-input"
                   />
                 </div>
 
-                {/* Score & Category Filters */}
-                <div className="flex flex-wrap gap-2 w-full lg:w-auto items-center">
-                  <SlidersHorizontal className="h-4 w-4 text-neutral-400 mr-1 hidden md:inline" />
+                {/* Filters container */}
+                <div className="flex flex-wrap md:flex-nowrap gap-2 w-full md:w-auto items-center justify-start md:justify-end">
                   
                   {/* Category Filter Dropdown */}
-                  <div className="flex items-center gap-1.5 bg-[#FFE600] text-black border-2 border-black px-3 py-1.5 text-xs font-black uppercase tracking-tight">
+                  <div className="flex items-center gap-1 bg-[#FFE600] text-black border-2 border-black px-2.5 py-1.5 text-xs font-black uppercase tracking-tight">
                     <span>{t.categoryLabel}</span>
                     <select
                       value={selectedCategory}
@@ -479,81 +427,37 @@ export default function App() {
                     </select>
                   </div>
 
-                  {/* Score Filter Presets */}
-                  <div className="flex bg-neutral-100 dark:bg-neutral-800 p-1 border-2 border-black dark:border-neutral-700 text-xs font-bold gap-1">
-                    <button
-                      onClick={() => setSelectedScoreFilter('all')}
-                      className={`px-3 py-1.5 transition-all text-[11px] uppercase tracking-wider ${selectedScoreFilter === 'all' ? 'bg-black text-white dark:bg-neutral-700 font-black' : 'text-neutral-500 hover:text-neutral-800'}`}
+                  {/* Sort Dropdown */}
+                  <div className="flex items-center gap-1 bg-neutral-100 dark:bg-neutral-800 text-neutral-800 dark:text-neutral-100 border-2 border-black dark:border-neutral-700 px-2.5 py-1.5 text-xs font-black uppercase tracking-tight">
+                    <span className="text-neutral-500 dark:text-neutral-400">{t.sortLabel}</span>
+                    <select
+                      value={sortBy}
+                      onChange={(e) => setSortBy(e.target.value as any)}
+                      className="bg-transparent border-none text-neutral-800 dark:text-neutral-100 font-extrabold cursor-pointer focus:outline-none font-sans dark:bg-neutral-800"
                     >
-                      {t.all}
-                    </button>
-                    <button
-                      onClick={() => setSelectedScoreFilter('high')}
-                      className={`px-3 py-1.5 transition-all flex items-center gap-0.5 text-[11px] uppercase tracking-wider ${selectedScoreFilter === 'high' ? 'bg-[#FFE600] text-black font-black border border-black' : 'text-neutral-500 hover:text-neutral-[#FFE600]'}`}
-                      title="Productos premium de alto valor"
+                      <option value="default" className="bg-white dark:bg-neutral-800 text-neutral-800 dark:text-neutral-100">{t.sortDefault}</option>
+                      <option value="price-desc" className="bg-white dark:bg-neutral-800 text-neutral-800 dark:text-neutral-100">{t.sortPriceDesc}</option>
+                      <option value="price-asc" className="bg-white dark:bg-neutral-800 text-neutral-800 dark:text-neutral-100">{t.sortPriceAsc}</option>
+                    </select>
+                  </div>
+
+                  {/* Quality/Score Filter Dropdown */}
+                  <div className="flex items-center gap-1 bg-neutral-100 dark:bg-neutral-800 text-neutral-800 dark:text-neutral-100 border-2 border-black dark:border-neutral-700 px-2.5 py-1.5 text-xs font-black uppercase tracking-tight">
+                    <span className="text-neutral-500 dark:text-neutral-400">{lang === 'es' ? 'CALIDAD:' : 'QUALITY:'}</span>
+                    <select
+                      value={selectedScoreFilter}
+                      onChange={(e) => setSelectedScoreFilter(e.target.value as any)}
+                      className="bg-transparent border-none text-neutral-800 dark:text-neutral-100 font-extrabold cursor-pointer focus:outline-none font-sans dark:bg-neutral-800"
                     >
-                      {t.premiumOnly}
-                    </button>
-                    <button
-                      onClick={() => setSelectedScoreFilter('medium')}
-                      className={`px-3 py-1.5 transition-all text-[11px] uppercase tracking-wider ${selectedScoreFilter === 'medium' ? 'bg-neutral-300 text-black font-black border border-neutral-400' : 'text-neutral-500 hover:text-neutral-800'}`}
-                      title="Artículos en buen estado general"
-                    >
-                      {t.mediumOnly}
-                    </button>
-                    <button
-                      onClick={() => setSelectedScoreFilter('free')}
-                      className={`px-3 py-1.5 transition-all flex items-center gap-0.5 text-[11px] uppercase tracking-wider ${selectedScoreFilter === 'free' ? 'bg-purple-600 text-white font-black' : 'text-neutral-500 hover:text-neutral-800'}`}
-                      title="Saldos, plantas, decorativos listos para regalar"
-                    >
-                      {t.opportunityOnly}
-                    </button>
+                      <option value="all" className="bg-white dark:bg-neutral-800 text-neutral-800 dark:text-neutral-100">{t.all}</option>
+                      <option value="high" className="bg-white dark:bg-neutral-800 text-neutral-800 dark:text-neutral-100">{t.premiumOnly}</option>
+                      <option value="medium" className="bg-white dark:bg-neutral-800 text-neutral-800 dark:text-neutral-100">{t.mediumOnly}</option>
+                      <option value="free" className="bg-white dark:bg-neutral-800 text-neutral-800 dark:text-neutral-100">{t.opportunityOnly}</option>
+                    </select>
                   </div>
 
                 </div>
               </div>
-
-              {/* DYNAMIC ALERT BANNER REGARDING EXTRA GIFT */}
-              {raffleEnabled && (
-                cartHasPremiumItem ? (
-                  <div className="bg-[#FFE600] border-2 border-black text-black p-6 flex flex-col md:flex-row items-center justify-between gap-4 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
-                    <div className="flex items-center gap-4 text-center md:text-left">
-                      <div className="p-4 bg-black text-white border-2 border-white rounded-none animate-bounce">
-                        <Gift className="h-7 w-7" />
-                      </div>
-                      <div>
-                        <h4 className="font-black text-neutral-900 text-lg uppercase tracking-tight">
-                          {t.alertPremiumTitle}
-                        </h4>
-                        <p className="text-neutral-900 font-bold text-xs md:text-sm mt-0.5">
-                          {wonGift ? (
-                            <span dangerouslySetInnerHTML={{ __html: t.alertPremiumDescWithGift.replace('{name}', `<strong>${wonGift.name}</strong>`) }} />
-                          ) : (
-                            t.alertPremiumDescNoGift
-                          )}
-                        </p>
-                      </div>
-                    </div>
-
-                    <button
-                      onClick={() => setIsMysteryBoxOpen(true)}
-                      className="w-full md:w-auto px-6 py-3 border-2 border-black bg-black text-white hover:bg-neutral-850 font-black tracking-widest text-xs uppercase flex items-center justify-center gap-2 transition-transform active:translate-x-0.5"
-                      id="launch-drawer-mystery-box-btn"
-                    >
-                      {wonGift ? (
-                        <>{t.viewMyGift}</>
-                      ) : (
-                        <>{t.chooseMyGift}</>
-                      )}
-                    </button>
-                  </div>
-                ) : (
-                  <div className="bg-white dark:bg-neutral-900 border-2 border-dashed border-black dark:border-neutral-700 p-5 text-xs text-neutral-800 dark:text-neutral-100 flex items-center gap-3">
-                    <Info className="h-5 w-5 text-[#3483FA] flex-shrink-0" />
-                    <p className="font-bold" dangerouslySetInnerHTML={{ __html: t.advisorTip }} />
-                  </div>
-                )
-              )}
 
               {/* GRID OF CATALOGUE ARTICLES */}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
@@ -583,7 +487,6 @@ export default function App() {
                       isInCart={cart.some((item) => item.product.id === product.id)}
                       onQuickWhatsApp={handleQuickWhatsApp}
                       lang={lang}
-                      raffleEnabled={raffleEnabled}
                     />
                   ))
                 )}
@@ -620,8 +523,6 @@ export default function App() {
                 onResetCatalog={handleResetCatalog}
                 whatsappNumber={whatsappNumber}
                 setWhatsappNumber={setWhatsappNumber}
-                raffleEnabled={raffleEnabled}
-                setRaffleEnabled={setRaffleEnabled}
               />
             </motion.div>
           )}
@@ -686,36 +587,6 @@ export default function App() {
                     </div>
                   ) : (
                     <div className="space-y-4">
-                      
-                      {/* Premium activation mini box */}
-                      {raffleEnabled && (
-                        cartHasPremiumItem ? (
-                          <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-2xl flex items-center gap-3">
-                            <Gift className="h-5 w-5 text-amber-500 flex-shrink-0 animate-bounce" />
-                            <div className="flex-1 text-left">
-                              <span className="font-bold text-xs text-neutral-900 dark:text-amber-400 block">{t.giftAvailableTitle}</span>
-                              <span className="text-[10px] text-neutral-500 dark:text-neutral-300">
-                                {wonGift 
-                                  ? t.giftAvailableSubWinning.replace('{name}', wonGift.name)
-                                  : t.giftAvailableSubDraw}
-                              </span>
-                            </div>
-                            <button
-                              onClick={() => setIsMysteryBoxOpen(true)}
-                              className="px-2 py-1 bg-amber-500 text-neutral-900 text-[10px] font-bold rounded-lg"
-                              id="drawer-open-mystery-box-btn"
-                            >
-                              {wonGift ? t.giftDetail : t.giftOpen}
-                            </button>
-                          </div>
-                        ) : (
-                          <div className="p-3 bg-indigo-50 dark:bg-indigo-950/20 rounded-2xl border border-indigo-100 dark:border-indigo-900/35 flex items-start gap-2.5">
-                            <AlertCircle className="h-4 w-4 text-indigo-500 flex-shrink-0 mt-0.5" />
-                            <p className="text-[10px] text-neutral-600 dark:text-indigo-300" dangerouslySetInnerHTML={{ __html: t.giftInstruction }} />
-                          </div>
-                        )
-                      )}
-
                       {/* Items loop */}
                       <div className="divide-y divide-neutral-100 dark:divide-neutral-800 space-y-3">
                         {cart.map((item) => (
@@ -743,37 +614,6 @@ export default function App() {
                             </button>
                           </div>
                         ))}
-
-                        {/* Gift inclusion inside view list */}
-                        {wonGift && (
-                          <div className="flex gap-3 pt-3 border-t-2 border-dashed border-amber-500/20 bg-amber-500/5 p-2 rounded-xl">
-                            <img
-                              src={wonGift.imageUrl}
-                              alt={wonGift.name}
-                              className="w-12 h-12 object-cover rounded-lg border border-amber-500/30"
-                              referrerPolicy="no-referrer"
-                            />
-                            <div className="flex-1 text-left">
-                              <div className="flex items-center gap-1">
-                                <span className="bg-amber-500 text-[8px] font-bold text-neutral-900 px-1 py-0.2 rounded">
-                                  {lang === 'es' ? 'Premio' : 'Gift'}
-                                </span>
-                                <h4 className="font-bold text-xs text-neutral-900 dark:text-white line-clamp-1">{wonGift.name}</h4>
-                              </div>
-                              <span className="text-[10px] text-neutral-400 block font-mono">
-                                {lang === 'es' ? 'Arreglado de mudanza' : 'Moving bundle bonus'}
-                              </span>
-                              <span className="text-emerald-500 text-xs font-bold font-mono">¡GRATIS ($0)!</span>
-                            </div>
-                            <button
-                              onClick={() => setWonGift(null)}
-                              className="text-neutral-400 hover:text-rose-500 transition-colors self-center p-1"
-                              id="discard-gift-btn"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </button>
-                          </div>
-                        )}
                       </div>
                     </div>
                   )}
@@ -809,20 +649,6 @@ export default function App() {
               </motion.div>
             </div>
           </div>
-        )}
-      </AnimatePresence>
-
-      {/* BOX GAME LIGHTBOX MODAL OVERLAY */}
-      <AnimatePresence>
-        {isMysteryBoxOpen && (
-          <MysteryBox
-            availableGifts={availableLowScoreGifts}
-            onSelectGift={handleClaimGift}
-            onClose={() => setIsMysteryBoxOpen(false)}
-            hasWon={!!wonGift}
-            wonGiftProduct={wonGift}
-            lang={lang}
-          />
         )}
       </AnimatePresence>
 

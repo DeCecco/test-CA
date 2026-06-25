@@ -11,7 +11,6 @@ interface ProductCardProps {
   onQuickWhatsApp: (product: Product) => void;
   lang?: 'es' | 'en';
   key?: string;
-  raffleEnabled?: boolean;
 }
 
 function getVideoEmbedUrl(url: string) {
@@ -61,7 +60,6 @@ export default function ProductCard({
   isInCart,
   onQuickWhatsApp,
   lang = 'es',
-  raffleEnabled = true,
 }: ProductCardProps) {
   const isPremium = product.score >= 4;
   const isSold = product.status === 'vendido';
@@ -113,14 +111,12 @@ export default function ProductCard({
   const textDict = {
     es: {
       premium: 'PREMIUM',
-      gift: 'REGALO',
+      gift: '¡PRECIO REGALADO! 🏷️',
       sold: '¡VENDIDO!',
       soldDesc: 'Ya tiene dueño en Canadá',
       reserved: 'RESERVADO',
       reservedDesc: 'Preguntá si se libera',
       clearancePrice: 'Precio de liquidación',
-      premiumPromo: '🎁 ¡Llevá este premium y tirá en la Caja de Regalos!',
-      standardPromo: '🪴 Ahorro: Elegible para sumarlo de regalo.',
       inList: 'En lista',
       addList: 'Llevar / Reservar',
       outOfStock: 'Sin Stock',
@@ -129,14 +125,12 @@ export default function ProductCard({
     },
     en: {
       premium: 'PREMIUM',
-      gift: 'FREE GIFT',
+      gift: 'BARGAIN PRICE! 🏷️',
       sold: 'SOLD!',
       soldDesc: 'Already has an owner in Canada',
       reserved: 'RESERVED',
       reservedDesc: 'Ask if it becomes available',
       clearancePrice: 'Clearance price',
-      premiumPromo: '🎁 Buy this premium item & spin the Gift Box!',
-      standardPromo: '🪴 Bargain: Eligible to get as a free gift.',
       inList: 'In list',
       addList: 'Claim / Reserve',
       outOfStock: 'Out of Stock',
@@ -180,8 +174,8 @@ export default function ProductCard({
           )}
 
           {(product.isOfferBonus || product.score <= 2) && (
-            <span className="text-[10px] bg-purple-600 text-white px-2.5 py-1 font-bold flex items-center gap-1 border border-black">
-              <Gift className="h-3 w-3" /> {textDict.gift}
+            <span className="text-[10px] bg-emerald-600 text-white px-2.5 py-1 font-bold flex items-center gap-1 border border-black uppercase tracking-tight">
+              {textDict.gift}
             </span>
           )}
         </div>
@@ -336,7 +330,9 @@ export default function ProductCard({
                   }`}
                 />
               ))}
-              <span className="text-[10px] text-neutral-500 font-mono font-bold ml-1">Score: {product.score}/5</span>
+              <span className="text-[10px] text-neutral-500 font-mono font-bold ml-1">
+                {lang === 'es' ? 'Calidad' : 'Quality'}: {product.score}/5
+              </span>
             </div>
 
             <h3 className="font-extrabold text-neutral-900 dark:text-white font-sans text-base line-clamp-1 group-hover:text-[#3483FA] transition-colors leading-tight">
@@ -378,21 +374,6 @@ export default function ProductCard({
             </div>
           </div>
 
-          {/* Promo info banner on the card */}
-          {raffleEnabled && (
-            <div className="mt-3 font-sans w-full">
-              {isPremium ? (
-                <div className="bg-amber-100 dark:bg-amber-950/20 text-neutral-900 dark:text-amber-300 p-2 text-[10px] font-bold flex items-center gap-1 border border-black">
-                  {textDict.premiumPromo}
-                </div>
-              ) : (
-                <div className="bg-gray-100 dark:bg-neutral-800/50 text-neutral-600 dark:text-neutral-400 p-2 text-[10px] font-bold border border-gray-300 dark:border-neutral-700">
-                  {textDict.standardPromo}
-                </div>
-              )}
-            </div>
-          )}
-
           {/* Footer controls */}
           <div className="mt-4 flex gap-2">
             {!isSold ? (
@@ -422,7 +403,9 @@ export default function ProductCard({
                   title={textDict.quickWaTitle}
                   id={`quick-wa-btn-${product.id}`}
                 >
-                  <MessageCircle className="h-4 w-4 text-[#25D366] fill-[#25D366]/10" />
+                  <svg className="h-4 w-4 text-[#25D366] fill-[#25D366]" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946C.06 5.348 5.397.01 12.008.01c3.202.001 6.212 1.246 8.477 3.514 2.266 2.268 3.507 5.28 3.505 8.484-.004 6.657-5.34 11.997-11.953 11.997-2.005-.001-3.973-.5-5.729-1.453L0 24zm6.59-4.846c1.6.95 3.188 1.449 4.825 1.451 5.436 0 9.86-4.413 9.863-9.83.001-2.624-1.017-5.09-2.868-6.944-1.851-1.854-4.312-2.876-6.932-2.877-5.402 0-9.802 4.414-9.805 9.832-.001 1.71.453 3.385 1.313 4.86l-.992 3.627 3.71-.973zm13.102-7.483c-.333-.167-1.97-.974-2.274-1.085-.303-.11-.524-.167-.745.167-.221.334-.857 1.085-1.05 1.307-.193.222-.386.25-.72.083-1.432-.718-2.386-1.282-3.34-2.923-.251-.433.251-.403.719-1.338.077-.167.039-.313-.019-.43-.058-.116-.524-1.264-.719-1.733-.189-.456-.381-.393-.523-.4H8.76c-.167 0-.441.063-.673.313-.232.25-.883.861-.883 2.1s.9 2.438 1.026 2.604c.127.167 1.77 2.704 4.29 3.793.6.26 1.068.415 1.433.531.603.192 1.152.165 1.587.1.485-.072 1.97-.806 2.247-1.542.277-.737.277-1.368.193-1.496-.083-.128-.303-.213-.636-.38z"/>
+                  </svg>
                 </button>
               </>
             ) : (

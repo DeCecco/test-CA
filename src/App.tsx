@@ -451,7 +451,7 @@ export default function App() {
                     placeholder={t.searchPlaceholder}
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2.5 bg-neutral-50 dark:bg-neutral-800 border-2 border-black dark:border-neutral-700 text-xs md:text-sm text-neutral-900 dark:text-white placeholder-neutral-400 focus:outline-none focus:bg-white"
+                    className="w-full pl-10 pr-4 py-2.5 bg-neutral-50 dark:bg-neutral-800 border-2 border-black dark:border-neutral-700 text-xs md:text-sm text-neutral-900 placeholder-neutral-400 focus:outline-none focus:bg-white focus:text-neutral-900"
                     id="catalog-search-input"
                   />
                 </div>

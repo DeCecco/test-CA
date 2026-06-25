@@ -24,6 +24,16 @@ import ProductCard from './components/ProductCard';
 import AdminPanel from './components/AdminPanel';
 import { translations, categoryTranslations } from './translations';
 
+// Clear default cache on site entry to ensure fresh data and prevent showing cached catalog/cart from previous sessions
+if (typeof window !== 'undefined') {
+  try {
+    localStorage.removeItem('garage_sale_catalog');
+    localStorage.removeItem('garage_sale_cart');
+  } catch (e) {
+    console.warn('Error clearing site cache on entry:', e);
+  }
+}
+
 const isLocalhost = 
   typeof window !== 'undefined' &&
   (window.location.hostname === 'localhost' ||
@@ -82,6 +92,22 @@ export default function App() {
   const [lang, setLang] = useState<'es' | 'en'>(() => {
     return (localStorage.getItem('garage_sale_lang') as 'es' | 'en') || 'es';
   });
+
+  // Temporal reservation notice banner (1-minute visibility with a countdown)
+  const [showTemporalBanner, setShowTemporalBanner] = useState(true);
+  const [temporalBannerTimeLeft, setTemporalBannerTimeLeft] = useState(60);
+
+  useEffect(() => {
+    if (!showTemporalBanner) return;
+    if (temporalBannerTimeLeft <= 0) {
+      setShowTemporalBanner(false);
+      return;
+    }
+    const interval = setInterval(() => {
+      setTemporalBannerTimeLeft((prev) => prev - 1);
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [temporalBannerTimeLeft, showTemporalBanner]);
 
   // Short hand translation helper
   const t = translations[lang];
@@ -391,6 +417,52 @@ export default function App() {
                   )}
                 </div>
               </div>
+
+              {/* TEMPORAL RESERVATION WARNING BANNER (1 MINUTE DURATION) */}
+              <AnimatePresence>
+                {showTemporalBanner && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, height: 0, marginBottom: 0, paddingTop: 0, paddingBottom: 0, overflow: 'hidden' }}
+                    transition={{ duration: 0.3 }}
+                    className="bg-amber-400 border-2 border-black text-black p-4 flex items-start gap-3 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] dark:shadow-[4px_4px_0px_0px_rgba(255,255,255,0.08)] relative"
+                  >
+                    <Info className="h-6 w-6 text-black flex-shrink-0 mt-0.5" />
+                    <div className="flex-1 text-xs md:text-sm font-bold text-left pr-8">
+                      {lang === 'es' ? (
+                        <div>
+                          <p className="uppercase tracking-wide font-black text-black mb-1">📢 Aviso Importante de Reservas</p>
+                          <p className="leading-relaxed">
+                            Agregar artículos a la lista o al carrito <strong>no los reserva automáticamente</strong>. 
+                            Es indispensable que te <strong>contactes por WhatsApp</strong> directamente para que el dueño confirme la disponibilidad y los marque como reservados oficialmente para ti.
+                          </p>
+                        </div>
+                      ) : (
+                        <div>
+                          <p className="uppercase tracking-wide font-black text-black mb-1">📢 Important Reservation Notice</p>
+                          <p className="leading-relaxed">
+                            Adding items to the list or cart <strong>does not automatically reserve them</strong>. 
+                            You must <strong>contact the owner via WhatsApp</strong> directly so they can confirm availability and officially mark them as reserved for you.
+                          </p>
+                        </div>
+                      )}
+                      
+                      <div className="mt-2 text-[10px] md:text-xs font-mono uppercase text-neutral-800 bg-black/10 inline-block px-2 py-0.5 rounded border border-black/10">
+                        ⏳ {lang === 'es' ? 'Este aviso se cerrará en' : 'This notice will close in'}: <span className="font-bold">{temporalBannerTimeLeft}s</span>
+                      </div>
+                    </div>
+                    
+                    <button
+                      onClick={() => setShowTemporalBanner(false)}
+                      className="absolute right-3 top-3 text-black hover:bg-black/10 p-1 transition-colors rounded-none border border-transparent hover:border-black"
+                      title={lang === 'es' ? 'Cerrar' : 'Close'}
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  </motion.div>
+                )}
+              </AnimatePresence>
 
               {/* FILTERS AND SEARCH COMPONENT */}
               <div className="bg-white dark:bg-neutral-900 p-3 border-2 border-black dark:border-neutral-700 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] dark:shadow-[4px_4px_0px_0px_rgba(255,255,255,0.08)] flex flex-col md:flex-row gap-3 items-center justify-between">

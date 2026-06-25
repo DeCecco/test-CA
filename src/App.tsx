@@ -53,9 +53,9 @@ export default function App() {
   const [whatsappNumber, setWhatsappNumber] = useState(() => {
     // Only load customized WA number if local
     if (isLocalhost) {
-      return localStorage.getItem('garage_sale_wa_num') || '59899123456';
+      return localStorage.getItem('garage_sale_wa_num') || '59897672249';
     }
-    return '59899123456';
+    return '59897672249';
   });
 
   // Buyer Inquiry Cart

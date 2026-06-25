@@ -518,7 +518,7 @@ export default function AdminPanel({
                   setRecoveryError('');
 
                   const entered = recoveryPhone.replace(/[^0-9]/g, '');
-                  const savedUnformatted = localStorage.getItem('garage_sale_wa_num') || '59899123456';
+                  const savedUnformatted = localStorage.getItem('garage_sale_wa_num') || '59897672249';
                   const savedWa = savedUnformatted.replace(/[^0-9]/g, '');
 
                   if (!entered) {
@@ -550,14 +550,14 @@ export default function AdminPanel({
                   <input
                     type="text"
                     required
-                    placeholder="Ej. 59899123456"
+                    placeholder="Ej. 59897672249"
                     value={recoveryPhone}
                     onChange={(e) => setRecoveryPhone(e.target.value)}
                     className="w-full px-4 py-3 bg-neutral-50 dark:bg-neutral-800 border-2 border-black rounded-xl text-neutral-900 dark:text-white focus:ring-2 focus:ring-indigo-500 text-sm font-mono font-bold"
                     id="admin-recovery-phone-input"
                   />
                   <p className="text-[10px] text-neutral-400 mt-1 font-bold leading-relaxed">
-                    Pista: Es el número celular donde recibís las compras. Por defecto es 59899123456.
+                    Pista: Es el número celular donde recibís las compras. Por defecto es 59897672249.
                   </p>
                 </div>
 
@@ -633,8 +633,8 @@ export default function AdminPanel({
               value={whatsappNumber}
               onChange={(e) => setWhatsappNumber(e.target.value)}
               className="w-32 bg-white dark:bg-neutral-800 border-2 border-black dark:border-neutral-700 px-2 py-0.5 rounded-lg text-xs font-mono font-bold text-neutral-900 dark:text-white focus:ring-1 focus:ring-indigo-500"
-              placeholder="Ej. 59899123456"
-              title="Ingresa tu celular sin símbolos ni espacios. Ej: 59899123456"
+              placeholder="Ej. 59897672249"
+              title="Ingresa tu celular sin símbolos ni espacios. Ej: 59897672249"
               id="admin-secure-wa-input"
             />
           </div>

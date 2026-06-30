@@ -28,7 +28,8 @@ import {
   LogOut,
   Check,
   Settings,
-  Link
+  Link,
+  Copy
 } from 'lucide-react';
 import { Product, ProductStatus } from '../types';
 import { CATEGORIES } from '../data';
@@ -111,6 +112,7 @@ export default function AdminPanel({
 
   // Search in Admin
   const [apiSearch, setApiSearch] = useState('');
+  const [copiedProductId, setCopiedProductId] = useState<string | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const extraFileInputRef = useRef<HTMLInputElement>(null);
@@ -1243,6 +1245,52 @@ export default function AdminPanel({
                           id={`edit-prod-${product.id}`}
                         >
                           <Pencil className="h-4 w-4" />
+                        </button>
+
+                        <button
+                          onClick={() => {
+                            const cleanProduct = {
+                              id: product.id,
+                              name: product.name,
+                              description: product.description || '',
+                              category: product.category,
+                              priceUSD: product.priceUSD,
+                              priceUYU: product.priceUYU,
+                              score: product.score,
+                              imageUrl: product.imageUrl,
+                              images: product.images || [],
+                              videoUrl: product.videoUrl || '',
+                              status: product.status,
+                              isOfferBonus: !!product.isOfferBonus,
+                              raffleWeight: product.raffleWeight !== undefined ? product.raffleWeight : 100,
+                              isVisible: product.isVisible !== false,
+                              showOfferBanner: !!product.showOfferBanner,
+                              originalUrl: product.originalUrl || ''
+                            };
+                            
+                            const jsonStr = JSON.stringify(cleanProduct, null, 2);
+                            navigator.clipboard.writeText(jsonStr)
+                              .then(() => {
+                                setCopiedProductId(product.id);
+                                setTimeout(() => setCopiedProductId(null), 2000);
+                              })
+                              .catch(err => {
+                                console.error('Could not copy text: ', err);
+                              });
+                          }}
+                          className={`p-1.5 rounded-lg transition-colors mr-1 ${
+                            copiedProductId === product.id
+                              ? 'text-emerald-600 bg-emerald-50 dark:bg-emerald-950/30'
+                              : 'text-neutral-400 hover:text-amber-500 hover:bg-amber-50 dark:hover:bg-neutral-800'
+                          }`}
+                          title={copiedProductId === product.id ? "¡JSON Copiado!" : "Copiar JSON del producto"}
+                          id={`copy-json-prod-${product.id}`}
+                        >
+                          {copiedProductId === product.id ? (
+                            <Check className="h-4 w-4 text-emerald-650" />
+                          ) : (
+                            <Copy className="h-4 w-4" />
+                          )}
                         </button>
 
                         <button

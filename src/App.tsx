@@ -89,8 +89,8 @@ export default function App() {
   const [sortBy, setSortBy] = useState<'default' | 'price-desc' | 'price-asc'>('default');
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [showFaq, setShowFaq] = useState(false);
-  const [lang, setLang] = useState<'es' | 'en'>(() => {
-    return (localStorage.getItem('garage_sale_lang') as 'es' | 'en') || 'es';
+  const [lang, setLang] = useState<'es' | 'en' | 'pt'>(() => {
+    return (localStorage.getItem('garage_sale_lang') as 'es' | 'en' | 'pt') || 'es';
   });
 
   // Temporal reservation notice banner (1-minute visibility with a countdown)
@@ -311,16 +311,23 @@ export default function App() {
           >
             EN
           </button>
+          <button
+            onClick={() => setLang('pt')}
+            className={`px-2 py-0.5 text-[10px] font-black uppercase tracking-tight transition-colors ${lang === 'pt' ? 'bg-black text-white' : 'bg-white hover:bg-neutral-150 text-black'}`}
+            id="lang-pt-btn"
+          >
+            PT
+          </button>
         </div>
 
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6 relative z-10">
           <div>
             <div className="flex items-center gap-2 mb-3">
-              <span className="text-xl">🇺🇾</span>
+              <span className="text-xl">📦</span>
               <div className="h-1 w-12 bg-black relative">
-                <span className="absolute -top-1.5 left-4 text-xs">✈️</span>
+                <span className="absolute -top-1.5 left-4 text-xs">🚚</span>
               </div>
-              <span className="text-xl">🇨🇦</span>
+              <span className="text-xl">🏠</span>
               <span className="text-xs font-mono uppercase tracking-widest text-black bg-white px-3 py-1 font-bold border-2 border-black p-1">
                 {t.badge}
               </span>
@@ -420,6 +427,8 @@ export default function App() {
                 <div className="text-xs md:text-sm font-bold text-left">
                   {lang === 'es' ? (
                     <span><strong>¡Precios Conversables!</strong> Algunos de los precios publicados se pueden negociar o hacer un descuento por combos si te interesan varios artículos. ¡No dudes en consultar por WhatsApp! 💬</span>
+                  ) : lang === 'pt' ? (
+                    <span><strong>Preços Negociáveis!</strong> Alguns dos preços publicados podem ser negociados ou ter descontos em combos se você se interessar por vários itens. Não hesite em perguntar por WhatsApp! 💬</span>
                   ) : (
                     <span><strong>Prices are Negotiable!</strong> Some of the listed prices are open for negotiation, and bundle discounts can be made if you're interested in multiple items. Don't hesitate to ask via WhatsApp! 💬</span>
                   )}
@@ -446,6 +455,14 @@ export default function App() {
                             Es indispensable que te <strong>contactes por WhatsApp</strong> directamente para que el dueño confirme la disponibilidad y los marque como reservados oficialmente para ti.
                           </p>
                         </div>
+                      ) : lang === 'pt' ? (
+                        <div>
+                          <p className="uppercase tracking-wide font-black text-black mb-1">📢 Aviso Importante de Reservas</p>
+                          <p className="leading-relaxed">
+                            Adicionar itens à lista ou ao carrinho <strong>não os reserva automaticamente</strong>. 
+                            É indispensável que você <strong>entre em contato por WhatsApp</strong> diretamente para que o proprietário confirme a disponibilidade e os marque oficialmente como reservados para você.
+                          </p>
+                        </div>
                       ) : (
                         <div>
                           <p className="uppercase tracking-wide font-black text-black mb-1">📢 Important Reservation Notice</p>
@@ -457,14 +474,14 @@ export default function App() {
                       )}
                       
                       <div className="mt-2 text-[10px] md:text-xs font-mono uppercase text-neutral-800 bg-black/10 inline-block px-2 py-0.5 rounded border border-black/10">
-                        ⏳ {lang === 'es' ? 'Este aviso se cerrará en' : 'This notice will close in'}: <span className="font-bold">{temporalBannerTimeLeft}s</span>
+                        ⏳ {lang === 'es' ? 'Este aviso se cerrará en' : lang === 'pt' ? 'Este aviso fechará em' : 'This notice will close in'}: <span className="font-bold">{temporalBannerTimeLeft}s</span>
                       </div>
                     </div>
                     
                     <button
                       onClick={() => setShowTemporalBanner(false)}
                       className="absolute right-3 top-3 text-black hover:bg-black/10 p-1 transition-colors rounded-none border border-transparent hover:border-black"
-                      title={lang === 'es' ? 'Cerrar' : 'Close'}
+                      title={lang === 'es' ? 'Cerrar' : lang === 'pt' ? 'Fechar' : 'Close'}
                     >
                       <X className="h-4 w-4" />
                     </button>
@@ -523,7 +540,7 @@ export default function App() {
 
                   {/* Quality/Score Filter Dropdown */}
                   <div className="flex items-center gap-1 bg-neutral-100 dark:bg-neutral-800 text-neutral-800 dark:text-neutral-100 border-2 border-black dark:border-neutral-700 px-2.5 py-1.5 text-xs font-black uppercase tracking-tight">
-                    <span className="text-neutral-500 dark:text-neutral-400">{lang === 'es' ? 'CALIDAD:' : 'QUALITY:'}</span>
+                    <span className="text-neutral-500 dark:text-neutral-400">{lang === 'es' ? 'CALIDAD:' : lang === 'pt' ? 'QUALIDADE:' : 'QUALITY:'}</span>
                     <select
                       value={selectedScoreFilter}
                       onChange={(e) => setSelectedScoreFilter(e.target.value as any)}
@@ -761,7 +778,7 @@ export default function App() {
             )}
             <button
               onClick={() => {
-                if (confirm(lang === 'es' ? '¿Restablecer datos originales del simulador? Se limpiará caché.' : 'Reset raw simulator database? It will clear cache.')) {
+                if (confirm(lang === 'es' ? '¿Restablecer datos originales del simulador? Se limpiará caché.' : lang === 'pt' ? 'Redefinir banco de dados original do simulador? Isso limpará o cache.' : 'Reset raw simulator database? It will clear cache.')) {
                   handleResetCatalog();
                 }
               }}

@@ -1463,7 +1463,7 @@ export default function AdminPanel({
                       {/* Generar QR URL */}
                       <img
                         src={`https://chart.googleapis.com/chart?chs=180x180&cht=qr&chl=${encodeURIComponent(
-                          getOTPAuthURL('pablomdececcoriosuy@gmail.com', 'Mudanza Uruguay-Canada', tempSecret)
+                          getOTPAuthURL('pablomdececcoriosuy@gmail.com', 'Mudanza Uruguay', tempSecret)
                         )}&choe=UTF-8`}
                         alt="2FA QR Code"
                         className="border-4 border-black bg-white inline-block shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]"

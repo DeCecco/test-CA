@@ -9,7 +9,7 @@ interface ProductCardProps {
   onAddToCart: (product: Product) => void;
   isInCart: boolean;
   onQuickWhatsApp: (product: Product) => void;
-  lang?: 'es' | 'en';
+  lang?: 'es' | 'en' | 'pt';
   key?: string;
 }
 
@@ -113,7 +113,7 @@ export default function ProductCard({
       premium: 'PREMIUM',
       gift: '¡PRECIO REGALADO! 🏷️',
       sold: '¡VENDIDO!',
-      soldDesc: 'Ya tiene dueño en Canadá',
+      soldDesc: 'Ya tiene nuevo dueño',
       reserved: 'RESERVADO',
       reservedDesc: 'Preguntá si se libera',
       clearancePrice: 'Precio de liquidación',
@@ -127,7 +127,7 @@ export default function ProductCard({
       premium: 'PREMIUM',
       gift: 'BARGAIN PRICE! 🏷️',
       sold: 'SOLD!',
-      soldDesc: 'Already has an owner in Canada',
+      soldDesc: 'Already has a new owner',
       reserved: 'RESERVED',
       reservedDesc: 'Ask if it becomes available',
       clearancePrice: 'Clearance price',
@@ -136,6 +136,20 @@ export default function ProductCard({
       outOfStock: 'Out of Stock',
       quickWaTitle: 'Inquire directly via WhatsApp',
       closeBtn: 'Close x',
+    },
+    pt: {
+      premium: 'PREMIUM',
+      gift: 'PREÇO DE BANANA! 🏷️',
+      sold: 'VENDIDO!',
+      soldDesc: 'Já tem novo dono',
+      reserved: 'RESERVADO',
+      reservedDesc: 'Pergunte se está disponível',
+      clearancePrice: 'Preço de liquidação',
+      inList: 'Na lista',
+      addList: 'Levar / Reservar',
+      outOfStock: 'Sem estoque',
+      quickWaTitle: 'Consultar diretamente por WhatsApp',
+      closeBtn: 'Fechar x',
     }
   }[lang];
 
@@ -156,7 +170,7 @@ export default function ProductCard({
         {product.showOfferBanner && (
           <div className="absolute top-0 right-0 w-24 h-24 overflow-hidden pointer-events-none z-20">
             <div className="absolute top-4 -right-8 w-28 bg-red-600 dark:bg-rose-600 text-white font-black text-[9px] tracking-widest text-center py-1.5 rotate-45 border-y border-black uppercase shadow-lg">
-              {lang === 'es' ? 'OFERTA' : 'OFFER'}
+              {lang === 'es' ? 'OFERTA' : lang === 'pt' ? 'OFERTA' : 'OFFER'}
             </div>
           </div>
         )}
@@ -188,7 +202,7 @@ export default function ProductCard({
               setLightboxImage(activeItem.url);
             }}
             className={`absolute ${product.showOfferBanner ? 'top-12' : 'top-3'} right-3 z-30 p-1.5 bg-black/80 hover:bg-[#FFE600] text-white hover:text-black border border-black shadow-[1.5px_1.5px_0px_0px_rgba(0,0,0,1)] select-none transition-colors`}
-            title={lang === 'es' ? 'Ampliar imagen' : 'Enlarge image'}
+            title={lang === 'es' ? 'Ampliar imagen' : lang === 'pt' ? 'Ampliar imagem' : 'Enlarge image'}
           >
             <Maximize2 className="h-3.5 w-3.5" />
           </button>
@@ -331,7 +345,7 @@ export default function ProductCard({
                 />
               ))}
               <span className="text-[10px] text-neutral-500 font-mono font-bold ml-1">
-                {lang === 'es' ? 'Calidad' : 'Quality'}: {product.score}/5
+                {lang === 'es' ? 'Calidad' : lang === 'pt' ? 'Qualidade' : 'Quality'}: {product.score}/5
               </span>
             </div>
 
@@ -353,7 +367,7 @@ export default function ProductCard({
                   id={`original-link-${product.id}`}
                 >
                   <ExternalLink className="h-3 w-3 stroke-[2.5px]" />
-                  {lang === 'es' ? 'Ver Original' : 'View Original'}
+                  {lang === 'es' ? 'Ver Original' : lang === 'pt' ? 'Ver Original' : 'View Original'}
                 </a>
               </div>
             )}

@@ -273,6 +273,14 @@ export default function App() {
       );
     })
     .sort((a, b) => {
+      const statusWeight = { disponible: 0, reservado: 1, vendido: 2 };
+      const weightA = statusWeight[a.status] ?? 0;
+      const weightB = statusWeight[b.status] ?? 0;
+
+      if (weightA !== weightB) {
+        return weightA - weightB;
+      }
+
       if (sortBy === 'price-desc') {
         return b.priceUSD - a.priceUSD;
       }
